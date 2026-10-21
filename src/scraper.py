@@ -66,10 +66,31 @@ class TikTokScraper:
             raw = json.loads(tag.string)
             scope = raw.get("__DEFAULT_SCOPE__", {})
 
-            # Video item struct
+            # Video or Carousel item struct
             video_detail = scope.get("webapp.video-detail", {})
             item = video_detail.get("itemInfo", {}).get("itemStruct")
             if item:
+                # Check for carousel
+                image_post = item.get("imagePostInfo") or item.get("imagePost") or {}
+                images_raw = image_post.get("images") or []
+                if not images_raw and "images" in item and isinstance(item["images"], list):
+                    images_raw = item["images"]
+
+                if images_raw:
+                    image_urls = []
+                    for img in images_raw:
+                        if isinstance(img, dict):
+                            img_data = img.get("imageURL") or img.get("displayImage") or img.get("thumbnail") or img
+                            if isinstance(img_data, dict):
+                                urls = img_data.get("urlList") or img_data.get("url_list") or []
+                                if urls:
+                                    image_urls.append(urls[0])
+                            elif isinstance(img_data, str):
+                                image_urls.append(img_data)
+                        elif isinstance(img, str):
+                            image_urls.append(img)
+                    return {"type": "carousel", "data": item, "images": image_urls}
+
                 return {"type": "video", "data": item}
 
             # User profile info
@@ -91,6 +112,41 @@ class TikTokScraper:
             "Could not locate TikTok SSR hydration payload in HTML. "
             "TikTok may be serving a captcha challenge or the URL is invalid."
         )
+
+    def download_carousel_images(self, image_urls: List[str], output_dir: str) -> List[Path]:
+        """
+        Downloads all slide images from a TikTok photo carousel.
+        """
+        self._check_dependencies()
+        folder = Path(output_dir)
+        ensure_output_dir(folder)
+
+        saved_files = []
+        headers = {
+            "User-Agent": get_default_headers()["User-Agent"],
+            "Referer": "https://www.tiktok.com/",
+        }
+
+        print(f"[*] Downloading {len(image_urls)} carousel slides to {folder}...")
+        for i, url in enumerate(image_urls, 1):
+            out_path = folder / f"slide_{i}.jpg"
+            try:
+                res = requests.get(
+                    url,
+                    impersonate=self.impersonate,
+                    headers=headers,
+                    cookies=self.cookies,
+                    timeout=20
+                )
+                if res.status_code == 200:
+                    with open(out_path, "wb") as f:
+                        f.write(res.content)
+                    saved_files.append(out_path)
+            except Exception as e:
+                print(f"[!] Warning downloading slide #{i}: {e}")
+
+        print(f"[✓] Carousel download complete: {len(saved_files)}/{len(image_urls)} slides saved.")
+        return saved_files
 
     def download_video(self, video_url: str, output_path: str) -> Path:
         """

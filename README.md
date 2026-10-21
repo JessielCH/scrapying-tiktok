@@ -90,6 +90,21 @@ playwright install chromium
 
 ## 📖 Usage Guide
 
+### 🚀 Interactive Console Mode (Recommended)
+Simply launch `main.py` without arguments or with `interactive` to enter the interactive console:
+```bash
+python main.py
+# or: python main.py interactive
+```
+This interactive prompt guides you through:
+- Entering any TikTok username or profile link (`@username`).
+- Selecting how many posts (videos & carousels) to analyze (default: 10).
+- Toggling visible browser mode (`headed`) if you need to solve captcha verification puzzles interactively.
+- Extracting / refreshing cookies (Guest or Login QR).
+- Downloading media files (video `.mp4` or all carousel `.jpg` slides).
+
+---
+
 ### 1. Extracting Cookies & Session
 
 TikTok requires valid cookies (especially `ttwid`) for most operations. Use the provided cookie extractor:
@@ -112,28 +127,30 @@ python main.py extract-cookies --mode login
 
 ---
 
-### 2. Scraping Videos & Metadata
+### 2. Scraping Posts (Videos & Carousels)
 
-Use the fast SSR rehydration scraper to extract video details, creator info, metrics, and direct CDN links:
+Use the fast SSR rehydration scraper to extract video or photo carousel details, creator info, metrics, and direct media links:
 
 ```bash
 python main.py scrape "https://www.tiktok.com/@username/video/1234567890123456789"
 ```
 
-To automatically download the video without watermarks:
+To automatically download the video without watermarks (or download all carousel image slides):
 ```bash
 python main.py scrape "https://www.tiktok.com/@username/video/1234567890123456789" --download
 ```
 
-### 3. User Profile & Recent Videos Analysis
+---
 
-Extract a TikTok user's complete profile information (username, display name, biography, verified badge, following count, follower count, total likes received, total video count) and calculate **numerical engagement metrics across their latest 10 videos** (likes, comments, bookmarks/saves, shares, views, and interaction rates):
+### 3. User Profile & Recent Posts Analysis (Videos & Carousels)
+
+Extract a TikTok user's complete profile information (username, display name, biography, verified badge, following count, follower count, total likes received, total video count) and calculate **numerical engagement metrics across their latest posts** (supporting both standard videos and photo carousels):
 
 ```bash
-# Analyze user profile and last 10 videos
+# Analyze user profile and last 10 posts (videos + carousels)
 python main.py analyze-user @username
 
-# Analyze with custom video count limit
+# Analyze with custom post limit
 python main.py analyze-user @username --max-videos 10
 
 # Pass authenticated session cookies
