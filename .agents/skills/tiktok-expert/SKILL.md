@@ -8,6 +8,14 @@ description: >-
 
 This skill provides step-by-step procedures, technical specifications, and operational workflows for robust TikTok data extraction, session lifecycle management, and anti-bot defense evasion.
 
+## 🎯 Core Engineering Directives
+- **Zero External APIs & Zero Pre-Made Wrappers:**
+  - Strictly NO reliance on official TikTok Developer APIs, OAuth tokens, or third-party scraping SaaS (Apify, RapidAPI, etc.).
+  - Strictly NO pre-made TikTok library wrappers (e.g. `TikTokApi`, `pyktok`).
+  - Everything is built using basic, fundamental web scraping: direct Playwright browser sessions, direct BeautifulSoup HTML hydration extraction (`__UNIVERSAL_DATA_FOR_REHYDRATION__`), and direct `curl_cffi` HTTP requests.
+- **User-Led Testing:**
+  - The user executes all live tests. The AI agent must never execute scraping commands against TikTok accounts unprompted.
+
 ---
 
 ## 📚 Quick Reference Documentation

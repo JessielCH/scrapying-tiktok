@@ -3,6 +3,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Playwright](https://img.shields.io/badge/playwright-stealth-green.svg)](https://playwright.dev/)
 [![TLS Impersonation](https://img.shields.io/badge/TLS-curl__cffi-orange.svg)](https://github.com/yifeikong/curl_cffi)
+[![Zero External APIs](https://img.shields.io/badge/External%20APIs-None%20(Pure%20Scraping)-success.svg)](#)
+[![No 3rd Party Wrappers](https://img.shields.io/badge/TikTok%20Wrappers-None%20(Vanilla%20Direct)-blueviolet.svg)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A high-performance, stealthy scraper and session cookie management toolkit for **TikTok**. Built to bypass Akamai Bot Manager, TLS/JA3 fingerprinting, and dynamic signing barriers with native support for both guest and authenticated sessions.
@@ -11,14 +13,29 @@ A high-performance, stealthy scraper and session cookie management toolkit for *
 
 ## 🌟 Key Features
 
+- **🧩 100% Pure Vanilla Web Scraping (Zero External APIs, Zero Pre-Made Wrappers):** Completely self-contained. Does not rely on third-party TikTok wrapper libraries (like `TikTokApi` or `pyktok`), paid proxy APIs, or official TikTok developer credentials.
 - **🛡️ Anti-Detect & TLS Evasion:** Uses `curl_cffi` to impersonate real Chrome 120/124 TLS handshakes (JA3/JA4 fingerprint matching), preventing immediate `HTTP 403 Forbidden` responses.
 - **🍪 Full Cookie & Session Management:**
   - **Guest Mode (`--mode guest`):** Headless extraction of required guest cookies (`ttwid`, `msToken`).
   - **Interactive Login (`--mode login`):** Headed Chromium browser supporting QR code or manual login to capture full authentication sessions (`sessionid`, `sessionid_ss`).
   - **Dual Export Formats:** Exports to both JSON (Playwright `storage_state`) and standard Netscape format (`cookies.txt` compatible with `yt-dlp` and `curl`).
+- **📸 Full Support for Photo Carousels & Videos:** Detects and parses multi-slide photo carousels (slide counts, direct image URLs) and video streams with full numerical engagement statistics.
 - **⚡ Ultra-Fast SSR Hydration Parsing:** Extracts structured data directly from the `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">` tag, avoiding complex JS execution and dynamic API signing (`X-Bogus`).
-- **🎥 Watermark-Free Video Downloads:** Directly fetches the clean CDN stream (`playAddr` / `downloadAddr`) or pairs seamlessly with `yt-dlp`.
+- **🎥 Watermark-Free Media Downloads:** Directly fetches clean CDN video streams (`playAddr` / `downloadAddr`) and batch downloads carousel images.
 - **🤖 Built-in AI Agent Capabilities:** Bundles native `.agents/` rules, skills, and runbooks compatible with Antigravity / Agentic IDEs.
+
+---
+
+## 🚫 Design Philosophy: Zero External APIs & Zero Pre-Made Wrappers
+
+A fundamental principle of this repository is **direct, basic, and transparent engineering**:
+- **No Official APIs:** No developer portal approvals, OAuth apps, client secrets, or usage quotas.
+- **No Third-Party Python Wrappers:** We do NOT depend on external wrapper packages like `TikTokApi`, `pyktok`, or unofficial PyPI SDKs that frequently break when TikTok updates its frontend.
+- **No Paid Scraping Services:** Operates without requiring paid subscriptions to Apify, ScraperAPI, RapidAPI, or BrightData.
+- **Pure Web Mechanics:**
+  1. Direct DOM inspection and real browser rendering using standard **Playwright**.
+  2. Direct HTML and server-side state parsing (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) using **BeautifulSoup**.
+  3. Direct standard HTTP requests and streaming with **curl_cffi** for TLS fingerprint parity.
 
 ---
 

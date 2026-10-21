@@ -4,6 +4,21 @@ These engineering rules must be strictly adhered to across all tools, scripts, a
 
 ---
 
+## 0. Fundamental Philosophy: Zero External APIs & Zero Pre-Made Wrappers
+1. **Ban on External APIs & Paid Proxy SaaS:**
+   - No reliance on TikTok official Developer APIs, OAuth registrations, or app credentials.
+   - No paid third-party proxy/scraping platforms (Apify, RapidAPI, ScraperAPI).
+2. **Ban on Pre-Made TikTok Python Wrappers:**
+   - Do NOT import or rely on third-party TikTok packages (e.g., `TikTokApi`, `pyktok`, `tiktok-scraper`).
+   - All extraction must be implemented via **basic, pure web primitives**:
+     - Direct headless/headed browser automation via **Playwright**.
+     - Direct SSR HTML data extraction (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) via **BeautifulSoup**.
+     - Direct TLS-impersonated HTTP streaming via **`curl_cffi`**.
+3. **No Unprompted Agent Testing:**
+   - The user conducts all live scraping tests. Never trigger automated scraping runs against TikTok accounts during development unless explicitly instructed by the user.
+
+---
+
 ## 1. Anti-Bot & TLS Evasion Rules (Anti-Detect)
 1. **Ban on TLS Fingerprint-Leaking Libraries:**
    - Standard HTTP libraries such as `requests`, `urllib`, or plain `aiohttp` must never make direct requests to `tiktok.com`.
