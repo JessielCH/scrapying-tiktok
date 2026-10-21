@@ -166,7 +166,9 @@ python main.py analyze-user @usuario --cookies data/cookies.json
 python main.py analyze-user @usuario --headed
 ```
 
-El reporte se imprime ordenadamente en la consola y se exporta automáticamente en formato JSON estructurado a `data/analysis_<usuario>.json`.
+El reporte se imprime ordenadamente en la consola y se exporta de forma automática en dos formatos complementarios en la carpeta `data/`:
+1. **`data/posts_<usuario>.csv`:** Archivo tabular con el desglose de cada publicación (ID, tipo, descripción, likes, comentarios, guardados, compartidos, vistas, fotos y fecha). Ideal para abrir en Microsoft Excel o cargarlo de inmediato en Python como un **DataFrame de pandas**.
+2. **`data/analysis_<usuario>.json`:** Estructura jerárquica con los metadatos completos del perfil, estadísticas globales, promedios y tasas de interacción.
 
 ---
 
@@ -189,21 +191,22 @@ python main.py scrape "https://www.tiktok.com/@usuario/video/1234567890123456789
 Puedes importar y reutilizar las clases directamente en tus propios scripts o proyectos de Python:
 
 ```python
-from src.scraper import TikTokScraper
+import pandas as pd
 from src.user_analyzer import TikTokUserAnalyzer
-from src.cookie_manager import TikTokCookieManager
 
-# 1. Extraer cookies de invitado
-manager = TikTokCookieManager(output_dir="data")
-manager.extract_guest_cookies()
-
-# 2. Analizar perfil y publicaciones numéricamente
-analyzer = TikTokUserAnalyzer(cookies_path="data/cookies.json")
+# 1. Extraer datos numéricos de perfil y publicaciones
+analyzer = TikTokUserAnalyzer()
 reporte = analyzer.analyze_user("mrbeast", max_videos=10)
 
-print(f"Seguidores: {reporte['profile']['follower_count']:,}")
-print(f"Total Likes últimos 10 posts: {reporte['posts_analysis']['metrics_totals']['likes']:,}")
-print(f"Tasa de Engagement: {reporte['posts_analysis']['performance']['engagement_rate_percent']}%")
+# 2. Cargar directamente el CSV generado en un DataFrame de pandas
+df = pd.read_csv("data/posts_mrbeast.csv")
+
+# 3. Análisis descriptivo de los datos
+print("Primeras filas del DataFrame:")
+print(df[["tipo", "likes", "comentarios", "guardados", "vistas"]].head())
+
+print("\nResumen estadístico:")
+print(df[["likes", "comentarios", "guardados", "vistas"]].describe())
 ```
 
 ---

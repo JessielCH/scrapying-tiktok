@@ -1,20 +1,96 @@
+"""
+Módulo de Utilidades del Sistema
+==================================
+Funciones auxiliares para gestión de directorios, serialización de cookies
+y exportación de datos tabulares a formatos CSV y JSON compatibles con pandas.
+"""
+
+import csv
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
 
 def ensure_output_dir(dir_path: Path) -> Path:
-    """Ensures directory exists and returns Path object."""
+    """Garantiza la existencia del directorio de destino y retorna el objeto Path."""
     dir_path = Path(dir_path)
     dir_path.mkdir(parents=True, exist_ok=True)
     return dir_path
 
 
+def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path) -> Path:
+    """
+    Exporta la lista de publicaciones (videos y carruseles) a formato CSV tabular
+    compatible con pandas DataFrame, Excel y herramientas de análisis de datos.
+    """
+    output_file = Path(output_file)
+    ensure_output_dir(output_file.parent)
+
+    fieldnames = [
+        "id",
+        "tipo",
+        "descripcion",
+        "likes",
+        "comentarios",
+        "guardados",
+        "compartidos",
+        "vistas",
+        "fotos_carrusel",
+        "fecha",
+        "url"
+    ]
+
+    with open(output_file, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for p in posts:
+            create_time = p.get("create_time", 0)
+            fecha_str = ""
+            if create_time:
+                try:
+                    fecha_str = datetime.fromtimestamp(int(create_time)).strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    fecha_str = str(create_time)
+
+            writer.writerow({
+                "id": p.get("id", ""),
+                "tipo": p.get("type", "video"),
+                "descripcion": p.get("description", "").replace("\n", " ").strip(),
+                "likes": p.get("likes", 0),
+                "comentarios": p.get("comments", 0),
+                "guardados": p.get("saves", 0),
+                "compartidos": p.get("shares", 0),
+                "vistas": p.get("views", 0),
+                "fotos_carrusel": p.get("carousel_images_count", 0),
+                "fecha": fecha_str,
+                "url": p.get("url", "")
+            })
+
+    return output_file
+
+
+def export_profile_to_csv(profile: Dict[str, Any], output_file: Path) -> Path:
+    """
+    Exporta el resumen del perfil a formato CSV tabular de una sola fila.
+    """
+    output_file = Path(output_file)
+    ensure_output_dir(output_file.parent)
+
+    fieldnames = list(profile.keys())
+
+    with open(output_file, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(profile)
+
+    return output_file
+
+
 def export_to_netscape_format(cookies: List[Dict[str, Any]], output_file: Path):
     """
-    Exports a list of cookie dictionaries to the standard Netscape / curl format.
-    Compatible with yt-dlp, curl, and requests.
+    Exporta la lista de cookies al formato estándar Netscape HTTP (cookies.txt).
     """
     output_file = Path(output_file)
     ensure_output_dir(output_file.parent)
@@ -22,7 +98,7 @@ def export_to_netscape_format(cookies: List[Dict[str, Any]], output_file: Path):
     lines = [
         "# Netscape HTTP Cookie File",
         "# https://curl.se/docs/http-cookies.html",
-        "# Generated automatically by TikTok Cookie Manager",
+        "# Generado automaticamente por el Gestor de Cookies de TikTok",
         ""
     ]
     
@@ -53,8 +129,8 @@ def export_to_netscape_format(cookies: List[Dict[str, Any]], output_file: Path):
 
 def load_cookies(cookies_path: Path) -> Dict[str, str]:
     """
-    Loads cookies from either JSON (Playwright storage_state) or Netscape format (.txt).
-    Returns a name-value dictionary suitable for HTTP requests.
+    Carga cookies desde formato JSON (Playwright) o formato Netscape (.txt).
+    Retorna un diccionario de pares clave-valor para peticiones HTTP.
     """
     cookies_path = Path(cookies_path)
     if not cookies_path.exists():
@@ -76,5 +152,5 @@ def load_cookies(cookies_path: Path) -> Dict[str, str]:
                     if len(parts) >= 7:
                         cookies[parts[5]] = parts[6]
     except Exception as e:
-        print(f"[!] Warning reading cookies ({cookies_path}): {e}")
+        print(f"[!] Aviso al leer cookies ({cookies_path}): {e}")
     return cookies

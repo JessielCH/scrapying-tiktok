@@ -26,6 +26,7 @@ if sys.stdout.encoding != 'utf-8':
 from src.cookie_manager import TikTokCookieManager
 from src.scraper import TikTokScraper
 from src.user_analyzer import TikTokUserAnalyzer
+from src.utils import export_posts_to_csv
 
 
 def handle_extract_cookies(args):
@@ -104,11 +105,21 @@ def handle_analyze_user(args):
             print(f"   Compartidos: {p['shares']:,} | Vistas:      {p['views']:,}")
             print(f"   Enlace URL:  {p['url']}")
 
-    # Exportar a JSON
-    json_out = Path(args.json_out) if args.json_out else (Path(args.output) / f"analysis_{profile['username'].replace('@', '')}.json")
+    clean_username = profile['username'].replace('@', '')
+
+    # Exportar a JSON completo
+    json_out = Path(args.json_out) if args.json_out else (Path(args.output) / f"analysis_{clean_username}.json")
     with open(json_out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    print(f"\n[OK] Análisis detallado guardado en formato JSON en: {json_out}")
+
+    # Exportar a CSV tabular (compatible con pandas DataFrame y Excel)
+    csv_out = Path(args.output) / f"posts_{clean_username}.csv"
+    export_posts_to_csv(posts, csv_out)
+
+    print("\n" + "-" * 65)
+    print(f"[OK] Datos tabulares exportados a CSV (DataFrame): {csv_out}")
+    print(f"[OK] Reporte completo guardado en formato JSON:    {json_out}")
+    print("-" * 65)
 
 
 def handle_scrape(args):
@@ -183,9 +194,9 @@ def run_interactive_menu():
         print("\n" + "=" * 68)
         print("          TIKTOK SCRAPER & ANALIZADOR DE RENDIMIENTO              ")
         print("=" * 68)
-        print(" [1] Analizar Perfil de Usuario y Publicaciones Recientes")
-        print(" [2] Extraer Cookies de Sesión (Modo Invitado o Login con QR)")
-        print(" [3] Scrapear Publicación Individual y Descargar Multimedia")
+        print(" [1] Analizar Perfil y Publicaciones (Exportar a CSV / DataFrame)")
+        print(" [2] Extraer Cookies de Sesion (Modo Invitado o Login con QR)")
+        print(" [3] Consultar Publicacion Individual (Inspeccionar Metadatos)")
         print(" [4] Salir")
         print("=" * 68)
 
