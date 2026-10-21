@@ -17,6 +17,7 @@ except ImportError:
 
 from .utils import load_cookies, ensure_output_dir
 from .anti_detect import DEFAULT_USER_AGENT, get_stealth_browser_args, get_stealth_init_script
+from .cookie_manager import TikTokCookieManager
 
 
 class TikTokUserAnalyzer:
@@ -107,6 +108,13 @@ class TikTokUserAnalyzer:
         handle = self._clean_username(username)
         profile_url = f"https://www.tiktok.com/@{handle}"
 
+        # Enforce cookies
+        cookie_mgr = TikTokCookieManager(output_dir=str(self.output_dir))
+        if not cookie_mgr.has_valid_cookies():
+            print("\n[OBLIGATORIO] Se requiere una sesion con cookies para evitar 'Acceso Denegado'.")
+            cookie_mgr.ensure_cookies()
+            self.cookies_path = self.output_dir / "cookies.json"
+
         print(f"[*] Analizando usuario de TikTok: @{handle}")
         print(f"[*] Enlace del perfil: {profile_url}")
 
@@ -120,14 +128,16 @@ class TikTokUserAnalyzer:
                 "locale": "es-ES,es;q=0.9,en;q=0.8",
             }
             if self.cookies_path and self.cookies_path.exists():
-                print(f"[i] Cargando estado de sesión desde: {self.cookies_path}")
+                print(f"[INFO] Inyectando cookies obligatorias desde: {self.cookies_path}")
                 try:
                     context = await browser.new_context(storage_state=str(self.cookies_path), **context_kwargs)
                 except Exception as e:
-                    print(f"[!] Aviso al leer storage_state ({e}), iniciando contexto limpio.")
-                    context = await browser.new_context(**context_kwargs)
+                    print(f"[!] Error leyendo cookies ({e}). Obteniendo sesion limpia...")
+                    cookie_mgr.ensure_cookies()
+                    context = await browser.new_context(storage_state=str(self.output_dir / "cookies.json"), **context_kwargs)
             else:
-                context = await browser.new_context(**context_kwargs)
+                cookie_mgr.ensure_cookies()
+                context = await browser.new_context(storage_state=str(self.output_dir / "cookies.json"), **context_kwargs)
 
             await context.add_init_script(get_stealth_init_script())
             page = await context.new_page()

@@ -40,6 +40,10 @@ def handle_extract_cookies(args):
 
 def handle_analyze_user(args):
     """Ejecuta la extracción de perfil y el análisis numérico de videos y carruseles."""
+    cookie_mgr = TikTokCookieManager(output_dir=args.output)
+    if not cookie_mgr.has_valid_cookies():
+        cookie_mgr.ensure_cookies()
+
     analyzer = TikTokUserAnalyzer(cookies_path=args.cookies, output_dir=args.output)
     try:
         report = analyzer.analyze_user(
@@ -190,12 +194,23 @@ def handle_scrape(args):
 
 def run_interactive_menu():
     """Menú interactivo por consola en texto."""
+    cookie_mgr = TikTokCookieManager(output_dir="data")
+
     while True:
+        if cookie_mgr.is_authenticated():
+            session_status = "[AUTENTICADA - Sesion completa con login]"
+        elif cookie_mgr.has_valid_cookies():
+            session_status = "[INVITADO - Cookies basicas ttwid detectadas]"
+        else:
+            session_status = "[NO DETECTADA - OBLIGATORIO EXTRAER]"
+
         print("\n" + "=" * 68)
         print("          TIKTOK SCRAPER & ANALIZADOR DE RENDIMIENTO              ")
         print("=" * 68)
+        print(f" Estado de Sesion: {session_status}")
+        print("-" * 68)
         print(" [1] Analizar Perfil y Publicaciones (Exportar a CSV / DataFrame)")
-        print(" [2] Extraer Cookies de Sesion (Modo Invitado o Login con QR)")
+        print(" [2] Extraer / Renovar Cookies de Sesion (Login QR o Invitado)")
         print(" [3] Consultar Publicacion Individual (Inspeccionar Metadatos)")
         print(" [4] Salir")
         print("=" * 68)
@@ -203,6 +218,24 @@ def run_interactive_menu():
         choice = input("\nSelecciona una opción [1-4]: ").strip()
 
         if choice == "1":
+            if not cookie_mgr.has_valid_cookies():
+                print("\n" + "=" * 65)
+                print("[OBLIGATORIO] SE REQUIEREN COOKIES DE SESION")
+                print("=" * 65)
+                print("TikTok bloquea las consultas anonimas (HTTP 403 / Acceso denegado).")
+                print("Es obligatorio inicializar las cookies:")
+                print("  [1] Iniciar sesion con codigo QR en navegador (Recomendado)")
+                print("  [2] Obtener cookies de invitado en segundo plano")
+                init_opt = input("Selecciona [1/2, por defecto 1]: ").strip()
+                if init_opt == "2":
+                    cookie_mgr.extract_guest_cookies()
+                else:
+                    cookie_mgr.extract_login_cookies(timeout=300)
+
+                if not cookie_mgr.has_valid_cookies():
+                    print("\n[!] No se pudieron guardar cookies validas. Regresando al menu...")
+                    continue
+
             username = input("\nIngresa el usuario de TikTok (ej. @mrbeast o enlace del perfil): ").strip()
             if not username:
                 print("[!] El nombre de usuario no puede estar vacío.")

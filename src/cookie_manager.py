@@ -145,6 +145,78 @@ class TikTokCookieManager:
             await browser.close()
             return storage_state
 
+    def has_valid_cookies(self) -> bool:
+        """
+        Verifica si existe el archivo de cookies y si contiene cookies validas.
+        """
+        json_path = self.output_dir / "cookies.json"
+        if not json_path.exists():
+            return False
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cookies = data.get("cookies", [])
+            if not cookies:
+                return False
+            names = {c.get("name") for c in cookies}
+            return "sessionid" in names or "sessionid_ss" in names or "ttwid" in names
+        except Exception:
+            return False
+
+    def is_authenticated(self) -> bool:
+        """Verifica si la sesion guardada cuenta con autenticacion de usuario (sessionid)."""
+        json_path = self.output_dir / "cookies.json"
+        if not json_path.exists():
+            return False
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            names = {c.get("name") for c in data.get("cookies", [])}
+            return "sessionid" in names or "sessionid_ss" in names
+        except Exception:
+            return False
+
+    def ensure_cookies(self, prefer_login: bool = False) -> Path:
+        """
+        Garantiza de forma obligatoria que existan cookies validas antes de continuar.
+        Si no existen, ejecuta la obtencion correspondiente para evitar el bloqueo HTTP 403.
+        """
+        json_path = self.output_dir / "cookies.json"
+        if self.has_valid_cookies() and not prefer_login:
+            return json_path
+
+        print("\n" + "=" * 65)
+        print("[OBLIGATORIO] VALIDACION DE SESION Y COOKIES")
+        print("=" * 65)
+        print("TikTok deniega el acceso (HTTP 403 / Bloqueo) a peticiones sin cookies.")
+        print("Es obligatorio inicializar una sesion con cookies para continuar.")
+        print("=" * 65 + "\n")
+
+        if prefer_login:
+            print("[*] Iniciando modo login para capturar sesion autenticada...")
+            self.extract_login_cookies()
+        else:
+            print("[*] Obteniendo cookies iniciales obligatorias (ttwid)...")
+            try:
+                self.extract_guest_cookies()
+            except Exception as e:
+                print(f"[!] Error en modo invitado ({e}). Se intentara modo login con ventana.")
+                self.extract_login_cookies()
+
+            if not self.has_valid_cookies():
+                print("\n[!] Las cookies basicas fueron bloqueadas por el firewall de TikTok.")
+                print("[*] Abriendo ventana de navegador para inicio de sesion (QR o credenciales)...")
+                self.extract_login_cookies()
+
+        if not self.has_valid_cookies():
+            raise RuntimeError(
+                "No fue posible obtener cookies validas. "
+                "TikTok exige iniciar sesion para procesar consultas sin denegar el acceso."
+            )
+
+        print("[OK] Sesion validada correctamente. Procediendo con la operacion.\n")
+        return json_path
+
     def extract_guest_cookies(self) -> Dict[str, Any]:
         """Synchronous wrapper for guest cookie extraction."""
         return asyncio.run(self.extract_guest_cookies_async())
