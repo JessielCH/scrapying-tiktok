@@ -46,7 +46,7 @@ class TikTokScraper:
         self._check_dependencies()
         headers = get_default_headers()
 
-        print(f"[*] Requesting {url} with TLS fingerprint impersonation ({self.impersonate})...")
+        print(f"[*] Consultando {url} con emulación de huella TLS ({self.impersonate})...")
         response = requests.get(
             url,
             impersonate=self.impersonate,
@@ -56,7 +56,7 @@ class TikTokScraper:
         )
 
         if response.status_code != 200:
-            raise RuntimeError(f"HTTP {response.status_code}: Failed to load TikTok page")
+            raise RuntimeError(f"HTTP {response.status_code}: Error al cargar la página de TikTok")
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -109,13 +109,13 @@ class TikTokScraper:
                 return {"type": "video", "data": item_module[first_key]}
 
         raise ValueError(
-            "Could not locate TikTok SSR hydration payload in HTML. "
-            "TikTok may be serving a captcha challenge or the URL is invalid."
+            "No se pudo localizar la etiqueta de hidratación SSR de TikTok en el HTML. "
+            "Es posible que TikTok haya presentado un captcha de verificación o que la URL sea inválida."
         )
 
     def download_carousel_images(self, image_urls: List[str], output_dir: str) -> List[Path]:
         """
-        Downloads all slide images from a TikTok photo carousel.
+        Descarga todas las fotos de un carrusel de diapositivas de TikTok.
         """
         self._check_dependencies()
         folder = Path(output_dir)
@@ -127,7 +127,7 @@ class TikTokScraper:
             "Referer": "https://www.tiktok.com/",
         }
 
-        print(f"[*] Downloading {len(image_urls)} carousel slides to {folder}...")
+        print(f"[*] Descargando {len(image_urls)} diapositivas del carrusel en {folder}...")
         for i, url in enumerate(image_urls, 1):
             out_path = folder / f"slide_{i}.jpg"
             try:
@@ -143,14 +143,14 @@ class TikTokScraper:
                         f.write(res.content)
                     saved_files.append(out_path)
             except Exception as e:
-                print(f"[!] Warning downloading slide #{i}: {e}")
+                print(f"[!] Aviso al descargar la diapositiva #{i}: {e}")
 
-        print(f"[✓] Carousel download complete: {len(saved_files)}/{len(image_urls)} slides saved.")
+        print(f"[✓] Descarga del carrusel completada: {len(saved_files)}/{len(image_urls)} fotos guardadas.")
         return saved_files
 
     def download_video(self, video_url: str, output_path: str) -> Path:
         """
-        Downloads a watermark-free video directly from the CDN stream URL.
+        Descarga un video sin marca de agua directamente desde la URL CDN del stream.
         """
         self._check_dependencies()
         output_file = Path(output_path)
@@ -162,7 +162,7 @@ class TikTokScraper:
             "Range": "bytes=0-"
         }
 
-        print(f"[*] Streaming video to {output_file}...")
+        print(f"[*] Transmitiendo y guardando video en {output_file}...")
         res = requests.get(
             video_url,
             impersonate=self.impersonate,
@@ -172,12 +172,12 @@ class TikTokScraper:
         )
 
         if res.status_code not in [200, 206]:
-            raise RuntimeError(f"HTTP {res.status_code}: Failed downloading video stream")
+            raise RuntimeError(f"HTTP {res.status_code}: Error al descargar el flujo de video")
 
         with open(output_file, "wb") as f:
             for chunk in res.iter_content(chunk_size=1024 * 64):
                 if chunk:
                     f.write(chunk)
 
-        print(f"[✓] Download completed: {output_file}")
+        print(f"[✓] Descarga completada exitosamente: {output_file}")
         return output_file

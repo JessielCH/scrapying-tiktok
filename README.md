@@ -1,243 +1,257 @@
-# TikTok Scraper & Session Cookie Manager
+# TikTok Scraper & Gestor de Cookies de Sesión
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Playwright](https://img.shields.io/badge/playwright-stealth-green.svg)](https://playwright.dev/)
 [![TLS Impersonation](https://img.shields.io/badge/TLS-curl__cffi-orange.svg)](https://github.com/yifeikong/curl_cffi)
-[![Zero External APIs](https://img.shields.io/badge/External%20APIs-None%20(Pure%20Scraping)-success.svg)](#)
-[![No 3rd Party Wrappers](https://img.shields.io/badge/TikTok%20Wrappers-None%20(Vanilla%20Direct)-blueviolet.svg)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Cero APIs Externas](https://img.shields.io/badge/APIs%20Externas-Ninguna%20(Scraping%20Puro)-success.svg)](#)
+[![Sin Wrappers de Terceros](https://img.shields.io/badge/Librer%C3%ADas%20TikTok-Ninguna%20(Nativo%20Directo)-blueviolet.svg)](#)
+[![Licencia: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A high-performance, stealthy scraper and session cookie management toolkit for **TikTok**. Built to bypass Akamai Bot Manager, TLS/JA3 fingerprinting, and dynamic signing barriers with native support for both guest and authenticated sessions.
-
----
-
-## 🌟 Key Features
-
-- **🧩 100% Pure Vanilla Web Scraping (Zero External APIs, Zero Pre-Made Wrappers):** Completely self-contained. Does not rely on third-party TikTok wrapper libraries (like `TikTokApi` or `pyktok`), paid proxy APIs, or official TikTok developer credentials.
-- **🛡️ Anti-Detect & TLS Evasion:** Uses `curl_cffi` to impersonate real Chrome 120/124 TLS handshakes (JA3/JA4 fingerprint matching), preventing immediate `HTTP 403 Forbidden` responses.
-- **🍪 Full Cookie & Session Management:**
-  - **Guest Mode (`--mode guest`):** Headless extraction of required guest cookies (`ttwid`, `msToken`).
-  - **Interactive Login (`--mode login`):** Headed Chromium browser supporting QR code or manual login to capture full authentication sessions (`sessionid`, `sessionid_ss`).
-  - **Dual Export Formats:** Exports to both JSON (Playwright `storage_state`) and standard Netscape format (`cookies.txt` compatible with `yt-dlp` and `curl`).
-- **📸 Full Support for Photo Carousels & Videos:** Detects and parses multi-slide photo carousels (slide counts, direct image URLs) and video streams with full numerical engagement statistics.
-- **⚡ Ultra-Fast SSR Hydration Parsing:** Extracts structured data directly from the `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">` tag, avoiding complex JS execution and dynamic API signing (`X-Bogus`).
-- **🎥 Watermark-Free Media Downloads:** Directly fetches clean CDN video streams (`playAddr` / `downloadAddr`) and batch downloads carousel images.
-- **🤖 Built-in AI Agent Capabilities:** Bundles native `.agents/` rules, skills, and runbooks compatible with Antigravity / Agentic IDEs.
+Un conjunto de herramientas de alto rendimiento, sigiloso y modular para la extracción de datos (web scraping) y gestión de sesiones en **TikTok**. Diseñado para sortear las protecciones de Akamai Bot Manager, huellas digitales TLS (JA3/JA4) y barreras de firmas criptográficas dinámicas, con soporte integral para sesiones de invitado y cuentas autenticadas.
 
 ---
 
-## 🚫 Design Philosophy: Zero External APIs & Zero Pre-Made Wrappers
+## 🌟 Características Principales
 
-A fundamental principle of this repository is **direct, basic, and transparent engineering**:
-- **No Official APIs:** No developer portal approvals, OAuth apps, client secrets, or usage quotas.
-- **No Third-Party Python Wrappers:** We do NOT depend on external wrapper packages like `TikTokApi`, `pyktok`, or unofficial PyPI SDKs that frequently break when TikTok updates its frontend.
-- **No Paid Scraping Services:** Operates without requiring paid subscriptions to Apify, ScraperAPI, RapidAPI, or BrightData.
-- **Pure Web Mechanics:**
-  1. Direct DOM inspection and real browser rendering using standard **Playwright**.
-  2. Direct HTML and server-side state parsing (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) using **BeautifulSoup**.
-  3. Direct standard HTTP requests and streaming with **curl_cffi** for TLS fingerprint parity.
+- **🧩 100% Scraping Web Puro (Cero APIs Externas, Cero Wrappers Prediseñados):** Totalmente autónomo. No requiere APIs de desarrolladores de TikTok, ni tokens de pago (Apify, RapidAPI), ni librerías wrapper de terceros (como `TikTokApi` o `pyktok`).
+- **🛡️ Anti-Detección y Evasión TLS:** Utiliza `curl_cffi` para replicar con exactitud el apretón de manos TLS de Chrome 120/124 (huellas JA3/JA4), evitando respuestas directas de bloqueo `HTTP 403 Forbidden`.
+- **🍪 Gestión Completa de Sesiones y Cookies:**
+  - **Modo Invitado (`--mode guest`):** Extracción automatizada en segundo plano (headless) de cookies públicas indispensables (`ttwid`, `msToken`).
+  - **Modo Inicio de Sesión Interactivo (`--mode login`):** Abre un navegador Chromium visible para iniciar sesión manual o mediante código QR, capturando sesiones autenticadas completas (`sessionid`, `sessionid_ss`).
+  - **Exportación Dual:** Guarda el estado en JSON (formato de almacenamiento de Playwright) y en formato estándar Netscape (`cookies.txt` compatible con `yt-dlp` y `curl`).
+- **📸 Soporte Total para Videos y Carruseles de Fotos (Slideshows):** Detecta automáticamente si una publicación es un video o un carrusel de diapositivas, extrayendo el número de fotos, enlaces a las imágenes o flujo de video, y todas las métricas numéricas.
+- **⚡ Extracción Ultra Rápida por Hidratación SSR:** Obtiene la información directamente de la etiqueta `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">` inyectada por el servidor, eliminando la necesidad de ejecutar JavaScript pesado o firmar tokens `X-Bogus`.
+- **🎥 Descarga de Medios Sin Marca de Agua:** Descarga directa de transmisiones de video en alta calidad (`playAddr` / `downloadAddr`) y descarga por lotes de todas las imágenes de carruseles.
+- **🤖 Menú de Consola Interactivo:** Interfaz amigable por terminal para ingresar perfiles, elegir cantidad de posts a analizar y alternar opciones visuales fácilmente.
 
 ---
 
-## 📁 Repository Structure
+## 🚫 Filosofía de Diseño: Cero APIs y Cero Wrappers de Terceros
+
+Un principio fundamental de este proyecto es la **ingeniería directa, básica y transparente**:
+- **Sin APIs Oficiales:** No se requiere solicitar acceso al portal de desarrolladores de TikTok, ni registrar aplicaciones OAuth, ni gestionar claves secretas o límites de cuota.
+- **Sin Librerías Wrapper de Python:** No se depende de paquetes externos como `TikTokApi` o `pyktok`, los cuales quedan obsoletos frecuentemente cada vez que TikTok actualiza sus endpoints internos.
+- **Sin Servicios de Scraping de Pago:** Funciona sin suscripciones a plataformas como Apify, ScraperAPI, RapidAPI o BrightData.
+- **Mecanismos Web Nativos:**
+  1. Inspección directa del DOM y renderizado real mediante **Playwright**.
+  2. Parseo directo del HTML y del estado del servidor (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) mediante **BeautifulSoup**.
+  3. Peticiones HTTP estándar con paridad de huella TLS mediante **curl_cffi**.
+
+---
+
+## 📁 Estructura del Repositorio
 
 ```text
 scrap-tiktok/
-├── src/                                                # Core modular source package
-│   ├── __init__.py                                     # Package exports
-│   ├── cookie_manager.py                               # Playwright session & cookie manager
-│   ├── scraper.py                                      # SSR hydration parser & video streamer
-│   ├── user_analyzer.py                                # User profile & engagement metrics analyzer
-│   ├── anti_detect.py                                  # Browser headers & stealth scripts
-│   └── utils.py                                        # Netscape/JSON serializers & loaders
-├── data/                                               # Session & media output (gitignored)
+├── src/                                                # Paquete fuente principal
+│   ├── __init__.py                                     # Exportación de clases y módulos
+│   ├── cookie_manager.py                               # Gestor de cookies y sesiones con Playwright
+│   ├── scraper.py                                      # Scraper SSR y descargas directas de medios
+│   ├── user_analyzer.py                                # Analizador numérico de perfiles y publicaciones
+│   ├── anti_detect.py                                  # Cabeceras realistas y scripts de evasión
+│   └── utils.py                                        # Serializadores Netscape/JSON y utilidades
+├── data/                                               # Almacén de sesiones y descargas (en .gitignore)
 │   ├── .gitkeep
 │   └── downloads/
 │       └── .gitkeep
-├── main.py                                             # Unified CLI entry point
-├── requirements.txt                                    # Python dependencies
-├── .agent                                              # Agent persona & quick references
-├── AGENTS.md                                           # Hierarchical workspace agent rules
+├── main.py                                             # Punto de entrada unificado y menú interactivo
+├── requirements.txt                                    # Dependencias de Python
+├── .agent                                              # Configuración del agente inteligente
+├── AGENTS.md                                           # Reglas operativas para agentes en el repositorio
 ├── .agents/
 │   ├── rules/
-│   │   └── tiktok_scraping_rules.md                    # Engineering rules (Anti-detect & session lifecycles)
+│   │   └── tiktok_scraping_rules.md                    # Reglas de ingeniería y anti-detección
 │   └── skills/
 │       └── tiktok-expert/
-│           ├── SKILL.md                                # Autonomous agent workflow & runbooks
-│           └── references/                             # Anti-detect, cookies, and endpoint guides
-├── CONTRIBUTING.md                                     # Contribution guidelines
-├── CODE_OF_CONDUCT.md                                 # Code of Conduct
-├── LICENSE                                             # MIT License
-├── README.md                                           # Project documentation (this file)
-└── SECURITY.md                                         # Security disclosure policy
+│           ├── SKILL.md                                # Flujos de trabajo y guías técnicas
+│           └── references/                             # Guías de cookies, endpoints y anti-detección
+├── CONTRIBUTING.md                                     # Guía para colaboradores
+├── CODE_OF_CONDUCT.md                                 # Código de conducta
+├── LICENSE                                             # Licencia MIT
+├── README.md                                           # Documentación del proyecto (este archivo)
+└── SECURITY.md                                         # Política de seguridad
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Instalación y Puesta en Marcha
 
-### 1. Prerequisites
-- Python 3.10 or higher
-- Git
+### 1. Requisitos Previos
+- Python 3.10 o superior instalado.
+- Git instalado.
 
-### 2. Installation
+### 2. Instalación Paso a Paso
 
-Clone the repository and install the required dependencies:
+Clona el repositorio e instala las dependencias necesarias:
 
 ```bash
 git clone https://github.com/JessielCH/scrapying-tiktok.git
 cd scrapying-tiktok
 
-# Create and activate a virtual environment
+# Crear y activar el entorno virtual
 python -m venv .venv
 
-# Windows:
+# En Windows (PowerShell / CMD):
 .venv\Scripts\activate
-# Linux/macOS:
+# En Linux / macOS:
 # source .venv/bin/activate
 
-# Install dependencies
+# Instalar dependencias requeridas
 pip install -r requirements.txt
 
-# Install Playwright browser binaries
+# Instalar el navegador Chromium de Playwright
 playwright install chromium
 ```
 
 ---
 
-## 📖 Usage Guide
+## 📖 Guía de Uso
 
-### 🚀 Interactive Console Mode (Recommended)
-Simply launch `main.py` without arguments or with `interactive` to enter the interactive console:
+### 🚀 Modo Interactivo por Consola (Recomendado)
+Para iniciar la experiencia interactiva, simplemente ejecuta `main.py` sin argumentos:
+
 ```bash
 python main.py
-# or: python main.py interactive
 ```
-This interactive prompt guides you through:
-- Entering any TikTok username or profile link (`@username`).
-- Selecting how many posts (videos & carousels) to analyze (default: 10).
-- Toggling visible browser mode (`headed`) if you need to solve captcha verification puzzles interactively.
-- Extracting / refreshing cookies (Guest or Login QR).
-- Downloading media files (video `.mp4` or all carousel `.jpg` slides).
+
+El menú te permitirá de forma guiada:
+1. **Analizar Perfil y Últimos Posts:** Ingresar cualquier usuario (`@usuario` o URL completa), seleccionar cuántos posts evaluar (por defecto 10) y decidir si deseas abrir el navegador visible si surge un captcha de rompecabezas.
+2. **Extraer Cookies de Sesión:** Escoger entre el modo Invitado rápido o el modo Login con código QR.
+3. **Scrapear Publicación Individual:** Extraer detalles de un video o carrusel específico y descargarlo opcionalmente.
+4. **Salir:** Cerrar el programa.
 
 ---
 
-### 1. Extracting Cookies & Session
+### 1. Extracción y Gestión de Cookies
 
-TikTok requires valid cookies (especially `ttwid`) for most operations. Use the provided cookie extractor:
+TikTok requiere cookies válidas (en especial `ttwid`) para procesar consultas sin arrojar pantallas de bloqueo.
 
-#### A. Guest Mode (Automated, Headless)
-Extracts public guest cookies without requiring user interaction:
+#### A. Modo Invitado (Automático, Sin Ventana)
+Extrae las cookies públicas necesarias de forma desatendida:
 ```bash
 python main.py extract-cookies --mode guest
 ```
-Output files:
-- `data/cookies.json` (Playwright state format)
-- `data/cookies.txt` (Netscape HTTP format)
+Archivos generados en la carpeta `data/`:
+- `data/cookies.json` (formato compatible con Playwright)
+- `data/cookies.txt` (formato estándar Netscape para `yt-dlp` y `curl`)
 
-#### B. Authenticated Login Mode (Interactive)
-Opens a visible browser for QR code scanning or manual login:
+#### B. Modo Autenticado con Inicio de Sesión (Interactivo)
+Abre una ventana de navegador real para iniciar sesión con credenciales o escaneando el código QR:
 ```bash
 python main.py extract-cookies --mode login
 ```
-*Once logged in, it automatically captures `sessionid` and persists your session.*
+*Al detectar el inicio de sesión exitoso, el sistema guarda de inmediato `sessionid` y todas las cookies del usuario.*
 
 ---
 
-### 2. Scraping Posts (Videos & Carousels)
+### 2. Análisis Numérico de Perfil y Últimos Posts (Videos y Carruseles)
 
-Use the fast SSR rehydration scraper to extract video or photo carousel details, creator info, metrics, and direct media links:
+Extrae el perfil completo de un usuario de TikTok:
+- Nombre de usuario y nombre visible (apodo).
+- Biografía.
+- Estado de verificación (cuenta verificada o no).
+- Contador de seguidos y seguidores.
+- Total de likes recibidos y total de videos publicados.
+
+Y analiza **numéricamente** sus últimos posts (tanto videos tradicionales como carruseles de fotos):
+- Total de likes, comentarios, guardados (favoritos), compartidos y reproducciones/vistas.
+- Promedios por publicación (promedio de likes, comentarios, guardados, compartidos y vistas).
+- Tasa de interacción (Engagement Rate) calculada en base a visualizaciones.
+- Desglose detallado de cada publicación con su tipo (Video 🎬 o Carrusel 📸 con número de diapositivas).
+
+#### Comandos Directos por Terminal:
 
 ```bash
-python main.py scrape "https://www.tiktok.com/@username/video/1234567890123456789"
+# Analizar usuario con los últimos 10 posts por defecto
+python main.py analyze-user @usuario
+
+# Analizar con un número personalizado de posts
+python main.py analyze-user @usuario --max-videos 15
+
+# Usar cookies de sesión previamente guardadas
+python main.py analyze-user @usuario --cookies data/cookies.json
+
+# Ejecutar con navegador visible (útil si TikTok muestra el captcha de deslizar el rompecabezas)
+python main.py analyze-user @usuario --headed
 ```
 
-To automatically download the video without watermarks (or download all carousel image slides):
+El reporte se imprime ordenadamente en la consola y se exporta automáticamente en formato JSON estructurado a `data/analysis_<usuario>.json`.
+
+---
+
+### 3. Scraping y Descarga de Publicaciones Individuales
+
+Permite obtener los metadatos de un video o carrusel puntual y descargar el archivo multimedia sin marcas de agua:
+
 ```bash
-python main.py scrape "https://www.tiktok.com/@username/video/1234567890123456789" --download
+# Solo ver los metadatos y enlaces
+python main.py scrape "https://www.tiktok.com/@usuario/video/1234567890123456789"
+
+# Descargar automáticamente el video en MP4 o las diapositivas del carrusel en JPG
+python main.py scrape "https://www.tiktok.com/@usuario/video/1234567890123456789" --download
 ```
 
 ---
 
-### 3. User Profile & Recent Posts Analysis (Videos & Carousels)
+### 4. Uso como Módulo de Python
 
-Extract a TikTok user's complete profile information (username, display name, biography, verified badge, following count, follower count, total likes received, total video count) and calculate **numerical engagement metrics across their latest posts** (supporting both standard videos and photo carousels):
-
-```bash
-# Analyze user profile and last 10 posts (videos + carousels)
-python main.py analyze-user @username
-
-# Analyze with custom post limit
-python main.py analyze-user @username --max-videos 10
-
-# Pass authenticated session cookies
-python main.py analyze-user @username --cookies data/cookies.json
-
-# Run headed (if captcha verification slider is encountered)
-python main.py analyze-user @username --headed
-```
-
-Generated reports are displayed cleanly in the console and exported to structured JSON format at `data/analysis_<username>.json`.
-
----
-
-### 4. Python API Integration
-
-You can also import the modules directly in your own Python projects:
+Puedes importar y reutilizar las clases directamente en tus propios scripts o proyectos de Python:
 
 ```python
 from src.scraper import TikTokScraper
+from src.user_analyzer import TikTokUserAnalyzer
 from src.cookie_manager import TikTokCookieManager
 
-# Extract guest cookies
+# 1. Extraer cookies de invitado
 manager = TikTokCookieManager(output_dir="data")
 manager.extract_guest_cookies()
 
-# Scrape video metadata
-scraper = TikTokScraper(cookies_path="data/cookies.json")
-metadata = scraper.get_metadata("https://www.tiktok.com/@username/video/1234567890123456789")
-print(metadata)
+# 2. Analizar perfil y publicaciones numéricamente
+analyzer = TikTokUserAnalyzer(cookies_path="data/cookies.json")
+reporte = analyzer.analyze_user("mrbeast", max_videos=10)
+
+print(f"Seguidores: {reporte['profile']['follower_count']:,}")
+print(f"Total Likes últimos 10 posts: {reporte['posts_analysis']['metrics_totals']['likes']:,}")
+print(f"Tasa de Engagement: {reporte['posts_analysis']['performance']['engagement_rate_percent']}%")
 ```
 
 ---
 
-### 5. Downloading with `yt-dlp`
+### 5. Descarga Alternativa con `yt-dlp`
 
-Use the exported Netscape cookie file to download high-resolution videos using `yt-dlp`:
+Puedes aprovechar el archivo de cookies en formato Netscape (`data/cookies.txt`) generado por este proyecto para descargar videos con `yt-dlp`:
 
 ```bash
-yt-dlp --cookies data/cookies.txt "https://www.tiktok.com/@username/video/1234567890123456789" -o "data/downloads/%(id)s.%(ext)s"
+yt-dlp --cookies data/cookies.txt "https://www.tiktok.com/@usuario/video/1234567890123456789" -o "data/downloads/%(id)s.%(ext)s"
 ```
 
 ---
 
-## 🛡️ Anti-Detect & Stealth Details
+## 🛡️ Detalles de Evasión y Anti-Detección
 
-TikTok's Akamai Bot Manager inspects the TLS `ClientHello` packet. Conventional HTTP libraries like Python `requests` or `urllib` send signatures that are instantly fingerprinted as bots.
+El sistema Akamai Bot Manager de TikTok inspecciona el paquete inicial de conexión `ClientHello` de TLS. Las librerías convencionales como `requests` o `urllib` generan firmas anómalas que son bloqueadas al instante.
 
-| Technique | Conventional Scraping | This Project |
+| Factor | Scraping Convencional | Este Proyecto |
 | :--- | :--- | :--- |
-| **TLS Handshake (JA3/JA4)** | Python default (Blocked with 403) | Impersonates Chrome 120+ via `curl_cffi` |
-| **Browser Context** | `navigator.webdriver = true` | Evasion via `playwright-stealth` scripts |
-| **Session Tracking** | Missing `ttwid` (Status 10202) | Automated guest & authenticated cookie management |
-| **Payload Extraction** | Heavy dynamic API calls | SSR Hydration (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) |
-
-For comprehensive technical analysis, consult [.agents/skills/tiktok-expert/references/anti_detect.md](.agents/skills/tiktok-expert/references/anti_detect.md).
+| **Apretón de Manos TLS (JA3/JA4)** | Predeterminado de Python (Bloqueo 403) | Simulación exacta de Chrome 120+ mediante `curl_cffi` |
+| **Contexto del Navegador** | `navigator.webdriver = true` | Evasión y camuflaje mediante scripts stealth en `playwright` |
+| **Rastreo de Sesión** | Ausencia de `ttwid` (Error 10202) | Gestión automatizada de cookies de invitado y autenticadas |
+| **Extracción de Datos** | Llamadas complejas con tokens `X-Bogus` | Hidratación del servidor SSR (`__UNIVERSAL_DATA_FOR_REHYDRATION__`) |
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contribuciones
 
-Contributions are warmly welcomed! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a pull request or submitting an issue.
-
----
-
-## ⚖️ Legal Disclaimer
-
-This repository is for educational, research, and data archival purposes only. Scraping must comply with relevant terms of service, platform policies, and applicable copyright laws. The authors and contributors assume no liability for misuse of this tool.
+¡Las contribuciones son bienvenidas! Por favor revisa [CONTRIBUTING.md](CONTRIBUTING.md) y el [Código de Conducta](CODE_OF_CONDUCT.md) antes de enviar propuestas o mejoras.
 
 ---
 
-## 📄 License
+## ⚖️ Aviso Legal
 
-Distributed under the [MIT License](LICENSE).
+Este proyecto ha sido desarrollado exclusivamente con fines educativos, de investigación académica y archivo de datos. La recolección de información debe cumplir con los términos de servicio de la plataforma y las normativas legales pertinentes sobre derechos de autor y privacidad. El autor no asume responsabilidad alguna por el uso indebido de esta herramienta.
+
+---
+
+## 📄 Licencia
+
+Distribuido bajo la [Licencia MIT](LICENSE).

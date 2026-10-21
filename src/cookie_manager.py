@@ -38,7 +38,7 @@ class TikTokCookieManager:
         Saves data to cookies.json and cookies.txt.
         """
         self._check_playwright()
-        print("[*] Starting GUEST extraction (Headless)...")
+        print("[*] Iniciando extracción en MODO INVITADO (segundo plano)...")
         
         async with async_playwright() as p:
             browser = await p.chromium.launch(
@@ -52,41 +52,41 @@ class TikTokCookieManager:
             await context.add_init_script(get_stealth_init_script())
             page = await context.new_page()
 
-            print("[*] Navigating to https://www.tiktok.com/ ...")
+            print("[*] Navegando a https://www.tiktok.com/ ...")
             try:
                 await page.goto("https://www.tiktok.com/", wait_until="domcontentloaded", timeout=30000)
                 await asyncio.sleep(4)
             except Exception as e:
-                print(f"[!] Notice during navigation: {e}")
+                print(f"[!] Aviso durante la navegación: {e}")
 
             cookies = await context.cookies()
             storage_state = await context.storage_state()
 
-            # Save Playwright JSON
+            # Guardar JSON de Playwright
             json_path = self.output_dir / "cookies.json"
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(storage_state, f, indent=2)
-            print(f"[✓] Session saved: {json_path}")
+            print(f"[✓] Estado de sesión guardado: {json_path}")
 
-            # Save Netscape format
+            # Guardar formato Netscape
             txt_path = self.output_dir / "cookies.txt"
             export_to_netscape_format(cookies, txt_path)
-            print(f"[✓] Netscape cookies saved: {txt_path}")
+            print(f"[✓] Cookies en formato Netscape guardadas: {txt_path}")
 
             cookie_names = [c["name"] for c in cookies]
-            print(f"[i] Total cookies: {len(cookies)} (ttwid: {'✓' if 'ttwid' in cookie_names else '✗'})")
+            print(f"[i] Total de cookies obtenidas: {len(cookies)} (ttwid: {'✓' if 'ttwid' in cookie_names else '✗'})")
 
             await browser.close()
             return storage_state
 
     async def extract_login_cookies_async(self, timeout: int = 300) -> Dict[str, Any]:
         """
-        Launches an interactive browser window for QR code or credentials login.
-        Detects authenticated cookies (sessionid) and saves full state.
+        Abre una ventana de navegador interactiva para inicio de sesión con QR o credenciales.
+        Detecta la cookie de autenticación (sessionid) y persiste el estado completo.
         """
         self._check_playwright()
-        print("[*] Starting AUTHENTICATED extraction (Interactive)...")
-        print("[*] A browser window will open. Please log in with your TikTok account.")
+        print("[*] Iniciando extracción en MODO AUTENTICADO (interactivo con ventana)...")
+        print("[*] Se abrirá una ventana de navegador. Por favor inicia sesión con tu cuenta de TikTok.")
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(
@@ -102,8 +102,8 @@ class TikTokCookieManager:
 
             await page.goto("https://www.tiktok.com/login", wait_until="domcontentloaded")
             print("\n" + "=" * 60)
-            print(">> Log in via QR code or credentials inside the browser window.")
-            print(">> Waiting for 'sessionid' cookie...")
+            print(">> Inicia sesión con código QR o credenciales en el navegador.")
+            print(">> Esperando detección de la cookie 'sessionid'...")
             print("=" * 60 + "\n")
 
             start_time = time.time()
@@ -112,12 +112,12 @@ class TikTokCookieManager:
             while time.time() - start_time < timeout:
                 try:
                     if page.is_closed():
-                        print("[*] Browser page was closed by user.")
+                        print("[*] La ventana del navegador fue cerrada por el usuario.")
                         break
                     cookies = await context.cookies()
                     names = [c["name"] for c in cookies]
                     if "sessionid" in names or "sessionid_ss" in names:
-                        print("\n[🎉] Authenticated session cookie 'sessionid' captured!")
+                        print("\n[🎉] ¡Cookie de sesión autenticada 'sessionid' capturada exitosamente!")
                         logged_in = True
                         await asyncio.sleep(2)
                         break
@@ -126,21 +126,21 @@ class TikTokCookieManager:
                 await asyncio.sleep(2)
 
             if not logged_in:
-                print("[!] Timeout reached or browser closed. Exporting available cookies...")
+                print("[!] Tiempo límite alcanzado o ventana cerrada. Exportando cookies capturadas...")
 
             cookies = await context.cookies()
             storage_state = await context.storage_state()
 
-            # Save Playwright JSON
+            # Guardar JSON de Playwright
             json_path = self.output_dir / "cookies.json"
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(storage_state, f, indent=2)
-            print(f"[✓] Session state saved: {json_path}")
+            print(f"[✓] Estado de sesión guardado: {json_path}")
 
-            # Save Netscape format
+            # Guardar formato Netscape
             txt_path = self.output_dir / "cookies.txt"
             export_to_netscape_format(cookies, txt_path)
-            print(f"[✓] Netscape cookies saved: {txt_path}")
+            print(f"[✓] Cookies en formato Netscape guardadas: {txt_path}")
 
             await browser.close()
             return storage_state

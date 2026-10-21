@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-TikTok Scraper & Session Cookie Manager CLI
-============================================
-Unified interactive and command-line interface for session extraction,
-anti-detect scraping, profile metrics analysis, and watermark-free media downloads
-(supporting both standard videos and photo carousels).
+CLI de Scraping y Gestor de Cookies de Sesión para TikTok
+==========================================================
+Interfaz de línea de comandos e interactiva para la extracción de sesiones,
+scraping con anti-detección, análisis numérico de perfiles y métricas de publicaciones
+(compatible con videos estándar y carruseles de fotos).
 
-Usage:
-  python main.py                              # Launches Interactive Console
-  python main.py interactive                  # Launches Interactive Console
-  python main.py analyze-user @username       # Direct CLI user & post analysis
-  python main.py extract-cookies --mode login # Direct CLI cookie extraction
-  python main.py scrape <url> --download      # Direct CLI single post scraper
+Uso:
+  python main.py                              # Inicia la consola interactiva
+  python main.py interactive                  # Inicia la consola interactiva
+  python main.py analyze-user @usuario        # Análisis directo de usuario y posts
+  python main.py extract-cookies --mode login # Extracción de cookies con login
+  python main.py scrape <url> --download      # Scraping de publicación individual
 """
 
 import sys
@@ -19,7 +19,7 @@ import json
 import argparse
 from pathlib import Path
 
-# Ensure UTF-8 output on Windows console
+# Configurar codificación UTF-8 para consola de Windows
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -29,7 +29,7 @@ from src.user_analyzer import TikTokUserAnalyzer
 
 
 def handle_extract_cookies(args):
-    """Executes cookie extraction."""
+    """Ejecuta la extracción de cookies."""
     manager = TikTokCookieManager(output_dir=args.output)
     if args.mode == "guest":
         manager.extract_guest_cookies()
@@ -38,7 +38,7 @@ def handle_extract_cookies(args):
 
 
 def handle_analyze_user(args):
-    """Executes user profile extraction and numerical engagement analysis on videos and carousels."""
+    """Ejecuta la extracción de perfil y el análisis numérico de videos y carruseles."""
     analyzer = TikTokUserAnalyzer(cookies_path=args.cookies, output_dir=args.output)
     try:
         report = analyzer.analyze_user(
@@ -48,7 +48,7 @@ def handle_analyze_user(args):
             timeout=args.timeout
         )
     except Exception as e:
-        print(f"[!] Error analyzing user: {e}")
+        print(f"[!] Error al analizar el usuario: {e}")
         return
 
     profile = report["profile"]
@@ -60,59 +60,59 @@ def handle_analyze_user(args):
     posts = p_analysis["posts"]
 
     print("\n" + "=" * 65)
-    print("👤 TIKTOK USER PROFILE OVERVIEW")
+    print("👤 RESUMEN DEL PERFIL DE USUARIO EN TIKTOK")
     print("=" * 65)
-    print(f"Username:        {profile['username']}")
-    print(f"Display Name:    {profile['nickname']}")
-    print(f"Biography:       {profile['biography']}")
-    print(f"Verified:        {'Yes' if profile['verified'] else 'No'}")
-    print(f"Following:       {profile['following_count']:,}")
-    print(f"Followers:       {profile['follower_count']:,}")
-    print(f"Total Likes:     {profile['total_likes_received']:,}")
-    print(f"Total Videos:    {profile['total_videos_count']:,}")
+    print(f"Usuario:                 {profile['username']}")
+    print(f"Nombre Visible:          {profile['nickname']}")
+    print(f"Biografía:               {profile['biography']}")
+    print(f"Cuenta Verificada:       {'Sí' if profile['verified'] else 'No'}")
+    print(f"Seguidos:                {profile['following_count']:,}")
+    print(f"Seguidores:              {profile['follower_count']:,}")
+    print(f"Total de Likes Recibidos:{profile['total_likes_received']:,}")
+    print(f"Total de Videos:         {profile['total_videos_count']:,}")
 
     print("\n" + "=" * 65)
-    print(f"📊 NUMERICAL ANALYSIS: LAST {len(posts)} POSTS (VIDEOS & CAROUSELS)")
+    print(f"📊 ANÁLISIS NUMÉRICO: ÚLTIMOS {len(posts)} POSTS (VIDEOS Y CARRUSELES)")
     print("=" * 65)
-    print(f"Posts Analyzed:         {len(posts)} ({post_types['videos_count']} videos, {post_types['carousels_count']} carousels)")
+    print(f"Publicaciones Analizadas: {len(posts)} ({post_types['videos_count']} videos, {post_types['carousels_count']} carruseles)")
     if post_types['carousels_count'] > 0:
-        print(f"Total Carousel Slides:  {post_types['total_carousel_images']}")
-    print(f"Total Likes:            {totals['likes']:,}")
-    print(f"Total Comments:         {totals['comments']:,}")
-    print(f"Total Saves (Bookmarks):{totals['saves']:,}")
-    print(f"Total Shares:           {totals['shares']:,}")
-    print(f"Total Views:            {totals['views']:,}")
-    print(f"Total Interactions:     {totals['total_interactions']:,}")
+        print(f"Total de Fotos en Carruseles: {post_types['total_carousel_images']}")
+    print(f"Total de Likes:          {totals['likes']:,}")
+    print(f"Total de Comentarios:    {totals['comments']:,}")
+    print(f"Total Guardados (Favs):  {totals['saves']:,}")
+    print(f"Total Compartidos:       {totals['shares']:,}")
+    print(f"Total de Vistas:         {totals['views']:,}")
+    print(f"Total de Interacciones:  {totals['total_interactions']:,}")
     print("-" * 65)
-    print(f"Average Likes/Post:     {averages['avg_likes']:,}")
-    print(f"Average Comments/Post:  {averages['avg_comments']:,}")
-    print(f"Average Saves/Post:     {averages['avg_saves']:,}")
-    print(f"Average Shares/Post:    {averages['avg_shares']:,}")
-    print(f"Average Views/Post:     {averages['avg_views']:,}")
-    print(f"Engagement Rate (Views):{perf['engagement_rate_percent']}%")
+    print(f"Promedio de Likes:       {averages['avg_likes']:,}")
+    print(f"Promedio de Comentarios: {averages['avg_comments']:,}")
+    print(f"Promedio de Guardados:   {averages['avg_saves']:,}")
+    print(f"Promedio de Compartidos: {averages['avg_shares']:,}")
+    print(f"Promedio de Vistas:      {averages['avg_views']:,}")
+    print(f"Tasa de Engagement:      {perf['engagement_rate_percent']}%")
 
     if posts:
         print("\n" + "=" * 65)
-        print("🎬 INDIVIDUAL POST BREAKDOWN")
+        print("🎬 DESGLOSE INDIVIDUAL DE CADA PUBLICACIÓN")
         print("=" * 65)
         for idx, p in enumerate(posts, 1):
             desc = (p['description'][:60] + "...") if len(p['description']) > 60 else p['description']
-            type_badge = f"[CAROUSEL 📸 - {p['carousel_images_count']} slides]" if p['is_carousel'] else "[VIDEO 🎬]"
+            type_badge = f"[CARRUSEL 📸 - {p['carousel_images_count']} fotos]" if p['is_carousel'] else "[VIDEO 🎬]"
             print(f"#{idx} {type_badge} [ID: {p['id']}]")
-            print(f"   Caption:  {desc}")
-            print(f"   Likes:    {p['likes']:,} | Comments: {p['comments']:,} | Saves: {p['saves']:,}")
-            print(f"   Shares:   {p['shares']:,} | Views:    {p['views']:,}")
-            print(f"   URL:      {p['url']}")
+            print(f"   Descripción: {desc}")
+            print(f"   Likes:       {p['likes']:,} | Comentarios: {p['comments']:,} | Guardados: {p['saves']:,}")
+            print(f"   Compartidos: {p['shares']:,} | Vistas:      {p['views']:,}")
+            print(f"   Enlace URL:  {p['url']}")
 
-    # Export to JSON
+    # Exportar a JSON
     json_out = Path(args.json_out) if args.json_out else (Path(args.output) / f"analysis_{profile['username'].replace('@', '')}.json")
     with open(json_out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    print(f"\n[✓] Detailed JSON analysis saved to: {json_out}")
+    print(f"\n[✓] Análisis detallado guardado en formato JSON en: {json_out}")
 
 
 def handle_scrape(args):
-    """Scrapes a single TikTok video or carousel post."""
+    """Scrapea un video o publicación de carrusel de TikTok."""
     scraper = TikTokScraper(cookies_path=args.cookies, impersonate=args.impersonate)
     try:
         result = scraper.get_metadata(args.url)
@@ -130,16 +130,16 @@ def handle_scrape(args):
         music = data.get("music", {})
 
         print("\n" + "=" * 55)
-        print("📹 TIKTOK VIDEO DETAILS")
+        print("📹 DETALLES DEL VIDEO DE TIKTOK")
         print("=" * 55)
         print(f"ID:          {data.get('id')}")
-        print(f"Author:      @{author.get('uniqueId')} ({author.get('nickname')})")
-        print(f"Description: {data.get('desc')}")
-        print(f"Metrics:     ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comments | 🔖 {stats.get('collectCount', 0):,} saves | 👁️ {stats.get('playCount', 0):,} views")
-        print(f"Soundtrack:  {music.get('title')} - {music.get('authorName')}")
+        print(f"Autor:       @{author.get('uniqueId')} ({author.get('nickname')})")
+        print(f"Descripción: {data.get('desc')}")
+        print(f"Métricas:    ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comentarios | 🔖 {stats.get('collectCount', 0):,} guardados | 👁️ {stats.get('playCount', 0):,} vistas")
+        print(f"Música:      {music.get('title')} - {music.get('authorName')}")
         
         play_addr = video.get("playAddr")
-        print(f"CDN Stream:  {play_addr[:85]}..." if play_addr else "Unavailable")
+        print(f"Enlace CDN:  {play_addr[:85]}..." if play_addr else "No disponible")
 
         if args.download and play_addr:
             out_file = Path(args.out_dir) / f"{data.get('id', 'tiktok_video')}.mp4"
@@ -150,14 +150,14 @@ def handle_scrape(args):
         music = data.get("music", {})
 
         print("\n" + "=" * 55)
-        print("📸 TIKTOK PHOTO CAROUSEL DETAILS")
+        print("📸 DETALLES DEL CARRUSEL DE FOTOS DE TIKTOK")
         print("=" * 55)
         print(f"ID:          {data.get('id')}")
-        print(f"Author:      @{author.get('uniqueId')} ({author.get('nickname')})")
-        print(f"Description: {data.get('desc')}")
-        print(f"Slides:      {len(images)} photos")
-        print(f"Metrics:     ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comments | 🔖 {stats.get('collectCount', 0):,} saves | 👁️ {stats.get('playCount', 0):,} views")
-        print(f"Soundtrack:  {music.get('title')} - {music.get('authorName')}")
+        print(f"Autor:       @{author.get('uniqueId')} ({author.get('nickname')})")
+        print(f"Descripción: {data.get('desc')}")
+        print(f"Fotos:       {len(images)} diapositivas")
+        print(f"Métricas:    ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comentarios | 🔖 {stats.get('collectCount', 0):,} guardados | 👁️ {stats.get('playCount', 0):,} vistas")
+        print(f"Música:      {music.get('title')} - {music.get('authorName')}")
 
         if args.download and images:
             carousel_dir = Path(args.out_dir) / f"carousel_{data.get('id', 'post')}"
@@ -166,41 +166,41 @@ def handle_scrape(args):
     elif res_type == "user":
         user = data.get("user", {})
         print("\n" + "=" * 55)
-        print("👤 TIKTOK PROFILE DETAILS")
+        print("👤 DETALLES DEL PERFIL DE TIKTOK")
         print("=" * 55)
-        print(f"Handle:      @{user.get('uniqueId')} ({user.get('nickname')})")
-        print(f"Bio:         {user.get('signature')}")
-        print(f"Verified:    {'Yes' if user.get('verified') else 'No'}")
-        print(f"Followers:   {stats.get('followerCount', 0):,}")
-        print(f"Following:   {stats.get('followingCount', 0):,}")
+        print(f"Usuario:     @{user.get('uniqueId')} ({user.get('nickname')})")
+        print(f"Biografía:   {user.get('signature')}")
+        print(f"Verificado:  {'Sí' if user.get('verified') else 'No'}")
+        print(f"Seguidores:  {stats.get('followerCount', 0):,}")
+        print(f"Seguidos:    {stats.get('followingCount', 0):,}")
         print(f"Total Likes: {stats.get('heartCount', 0):,}")
         print(f"Videos:      {stats.get('videoCount', 0):,}")
 
 
 def run_interactive_menu():
-    """Interactive text-based console menu."""
+    """Menú interactivo por consola en texto."""
     while True:
         print("\n" + "=" * 68)
-        print("     🔥 TIKTOK SCRAPER & ENGAGEMENT ANALYZER (INTERACTIVE) 🔥     ")
+        print("     🔥 TIKTOK SCRAPER & ANALIZADOR DE ENGAGEMENT (INTERACTIVO) 🔥     ")
         print("=" * 68)
-        print(" [1] 👤 Analyze User Profile & Latest Posts (Videos + Carousels)")
-        print(" [2] 🍪 Extract Session Cookies (Guest Mode or Login QR)")
-        print(" [3] 📥 Scrape Single Post / Download Media (Video or Carousel)")
-        print(" [4] ❌ Exit")
+        print(" [1] 👤 Analizar Perfil de Usuario y Últimos Posts (Videos + Carruseles)")
+        print(" [2] 🍪 Extraer Cookies de Sesión (Modo Invitado o Login con QR)")
+        print(" [3] 📥 Scrapear Publicación Individual / Descargar (Video o Carrusel)")
+        print(" [4] ❌ Salir")
         print("=" * 68)
 
-        choice = input("\nSelect an option [1-4]: ").strip()
+        choice = input("\nSelecciona una opción [1-4]: ").strip()
 
         if choice == "1":
-            username = input("\nEnter TikTok username (e.g. @mrbeast or full URL): ").strip()
+            username = input("\nIngresa el usuario de TikTok (ej. @mrbeast o enlace del perfil): ").strip()
             if not username:
-                print("[!] Username cannot be empty.")
+                print("[!] El nombre de usuario no puede estar vacío.")
                 continue
 
-            count_input = input("Number of recent posts to analyze [default 10]: ").strip()
+            count_input = input("Número de publicaciones recientes a analizar [por defecto 10]: ").strip()
             max_videos = int(count_input) if count_input.isdigit() else 10
 
-            headed_input = input("Run visible browser to solve captcha puzzle if needed? (y/N) [default N]: ").strip().lower()
+            headed_input = input("¿Abrir navegador visible para resolver el rompecabezas de captcha si aparece? (s/N) [por defecto N]: ").strip().lower()
             headed = headed_input in ["y", "yes", "s", "si"]
 
             class Args:
@@ -215,13 +215,13 @@ def run_interactive_menu():
             args.timeout = 40
 
             handle_analyze_user(args)
-            input("\nPress Enter to return to main menu...")
+            input("\nPresiona Enter para regresar al menú principal...")
 
         elif choice == "2":
-            print("\nSelect cookie extraction mode:")
-            print("  [1] Guest Mode (Headless, fast public cookies like ttwid)")
-            print("  [2] Login Mode (Visible Chromium browser for QR scan / login)")
-            mode_choice = input("Option [1/2, default 1]: ").strip()
+            print("\nSelecciona el modo de extracción de cookies:")
+            print("  [1] Modo Invitado (Automático, sin ventana, cookies públicas como ttwid)")
+            print("  [2] Modo Login (Abre navegador Chromium para escanear QR / iniciar sesión)")
+            mode_choice = input("Opción [1/2, por defecto 1]: ").strip()
             mode = "login" if mode_choice == "2" else "guest"
 
             class Args:
@@ -232,15 +232,15 @@ def run_interactive_menu():
             args.timeout = 300
 
             handle_extract_cookies(args)
-            input("\nPress Enter to return to main menu...")
+            input("\nPresiona Enter para regresar al menú principal...")
 
         elif choice == "3":
-            url = input("\nEnter TikTok video or carousel URL: ").strip()
+            url = input("\nIngresa la URL del video o carrusel de TikTok: ").strip()
             if not url:
-                print("[!] URL cannot be empty.")
+                print("[!] La URL no puede estar vacía.")
                 continue
 
-            dl_input = input("Download media (video file or carousel slides)? (y/N) [default N]: ").strip().lower()
+            dl_input = input("¿Deseas descargar el archivo multimedia (video MP4 o fotos del carrusel)? (s/N) [por defecto N]: ").strip().lower()
             download = dl_input in ["y", "yes", "s", "si"]
 
             class Args:
@@ -253,114 +253,114 @@ def run_interactive_menu():
             args.impersonate = "chrome120"
 
             handle_scrape(args)
-            input("\nPress Enter to return to main menu...")
+            input("\nPresiona Enter para regresar al menú principal...")
 
-        elif choice in ["4", "exit", "quit", "q"]:
-            print("\nGoodbye!\n")
+        elif choice in ["4", "exit", "quit", "q", "salir"]:
+            print("\n¡Hasta pronto!\n")
             sys.exit(0)
 
         else:
-            print("[!] Invalid option. Please enter 1, 2, 3, or 4.")
+            print("[!] Opción inválida. Por favor ingresa 1, 2, 3 o 4.")
 
 
 def main():
-    # If no arguments are passed or "interactive" is specified, launch interactive console
-    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1].lower() in ["interactive", "-i", "--interactive"]):
+    # Si no se pasan argumentos o se especifica "interactive", iniciar el menú interactivo
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1].lower() in ["interactive", "-i", "--interactive", "interactivo"]):
         run_interactive_menu()
         return
 
     parser = argparse.ArgumentParser(
-        description="TikTok Scraper & Session Cookie Manager CLI",
+        description="CLI de Scraping y Gestor de Cookies de Sesión para TikTok",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Subcommand: interactive
-    subparsers.add_parser("interactive", help="Start interactive console menu")
+    # Subcomando: interactive
+    subparsers.add_parser("interactive", help="Iniciar menú interactivo en consola")
 
-    # Subcommand: extract-cookies
-    cookie_parser = subparsers.add_parser("extract-cookies", help="Extract TikTok session cookies")
+    # Subcomando: extract-cookies
+    cookie_parser = subparsers.add_parser("extract-cookies", help="Extraer cookies de sesión de TikTok")
     cookie_parser.add_argument(
         "--mode",
         choices=["guest", "login"],
         default="guest",
-        help="Extraction mode: 'guest' (headless, fast) or 'login' (headed, QR/credentials)"
+        help="Modo de extracción: 'guest' (automático, sin ventana) o 'login' (con ventana, escaneo QR)"
     )
     cookie_parser.add_argument(
         "--output",
         default="data",
-        help="Output directory for cookies (default: data)"
+        help="Directorio de salida para las cookies (por defecto: data)"
     )
     cookie_parser.add_argument(
         "--timeout",
         type=int,
         default=300,
-        help="Timeout in seconds for interactive login (default: 300)"
+        help="Tiempo límite en segundos para el inicio de sesión interactivo (por defecto: 300)"
     )
 
-    # Subcommand: scrape
-    scrape_parser = subparsers.add_parser("scrape", help="Scrape video or profile metadata and download media")
-    scrape_parser.add_argument("url", help="TikTok video or profile URL")
+    # Subcomando: scrape
+    scrape_parser = subparsers.add_parser("scrape", help="Scrapear metadatos de video o carrusel y descargar multimedia")
+    scrape_parser.add_argument("url", help="URL del video, carrusel o perfil de TikTok")
     scrape_parser.add_argument(
         "--cookies",
         default="data/cookies.json",
-        help="Path to session cookies file (.json or .txt)"
+        help="Ruta al archivo de cookies (.json o .txt)"
     )
     scrape_parser.add_argument(
         "--download",
         action="store_true",
-        help="Download clean watermark-free video or carousel images"
+        help="Descargar video sin marca de agua o fotos del carrusel"
     )
     scrape_parser.add_argument(
         "--out-dir",
         default="data/downloads",
-        help="Output folder for downloaded media (default: data/downloads)"
+        help="Carpeta de destino para los archivos descargados (por defecto: data/downloads)"
     )
     scrape_parser.add_argument(
         "--impersonate",
         default="chrome120",
-        help="Browser version to impersonate for TLS handshake (default: chrome120)"
+        help="Versión de navegador para la firma TLS (por defecto: chrome120)"
     )
 
-    # Subcommand: analyze-user
-    user_parser = subparsers.add_parser("analyze-user", help="Extract profile bio/stats and analyze last 10 posts numerically")
-    user_parser.add_argument("username", help="TikTok username (e.g. @mrbeast or mrbeast)")
+    # Subcomando: analyze-user
+    user_parser = subparsers.add_parser("analyze-user", help="Extraer biografía/métricas de perfil y analizar numéricamente los últimos posts")
+    user_parser.add_argument("username", help="Nombre de usuario de TikTok (ej. @mrbeast o mrbeast)")
     user_parser.add_argument(
         "--max-videos",
         type=int,
         default=10,
-        help="Maximum number of recent posts to analyze (default: 10)"
+        help="Número máximo de publicaciones recientes a analizar (por defecto: 10)"
     )
     user_parser.add_argument(
         "--cookies",
         default="data/cookies.json",
-        help="Path to session cookies file (.json or .txt)"
+        help="Ruta al archivo de cookies de sesión (.json o .txt)"
     )
     user_parser.add_argument(
         "--output",
         default="data",
-        help="Output folder for generated reports (default: data)"
+        help="Carpeta de destino para los reportes generados (por defecto: data)"
     )
     user_parser.add_argument(
         "--json-out",
         default=None,
-        help="Custom JSON filename for exported analysis"
+        help="Nombre de archivo JSON personalizado para guardar el análisis"
     )
     user_parser.add_argument(
         "--headed",
         action="store_true",
-        help="Run browser in visible mode to solve captcha puzzle if requested"
+        help="Abrir navegador en modo visible para resolver captcha de rompecabezas si es necesario"
     )
     user_parser.add_argument(
         "--timeout",
         type=int,
         default=35,
-        help="Page load timeout in seconds (default: 35)"
+        help="Tiempo límite de carga de página en segundos (por defecto: 35)"
     )
 
     args = parser.parse_args()
 
-    if args.command == "interactive":
+    if args.command in ["interactive", "interactivo"]:
         run_interactive_menu()
     elif args.command == "extract-cookies":
         handle_extract_cookies(args)

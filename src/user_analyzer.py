@@ -107,8 +107,8 @@ class TikTokUserAnalyzer:
         handle = self._clean_username(username)
         profile_url = f"https://www.tiktok.com/@{handle}"
 
-        print(f"[*] Analyzing TikTok user: @{handle}")
-        print(f"[*] Profile URL: {profile_url}")
+        print(f"[*] Analizando usuario de TikTok: @{handle}")
+        print(f"[*] Enlace del perfil: {profile_url}")
 
         async with async_playwright() as p:
             launch_args = get_stealth_browser_args()
@@ -117,14 +117,14 @@ class TikTokUserAnalyzer:
             context_kwargs = {
                 "viewport": {"width": 1920, "height": 1080},
                 "user_agent": DEFAULT_USER_AGENT,
-                "locale": "en-US",
+                "locale": "es-ES,es;q=0.9,en;q=0.8",
             }
             if self.cookies_path and self.cookies_path.exists():
-                print(f"[i] Injecting session state from: {self.cookies_path}")
+                print(f"[i] Cargando estado de sesión desde: {self.cookies_path}")
                 try:
                     context = await browser.new_context(storage_state=str(self.cookies_path), **context_kwargs)
                 except Exception as e:
-                    print(f"[!] Warning reading storage_state ({e}), launching fresh context.")
+                    print(f"[!] Aviso al leer storage_state ({e}), iniciando contexto limpio.")
                     context = await browser.new_context(**context_kwargs)
             else:
                 context = await browser.new_context(**context_kwargs)
@@ -147,15 +147,15 @@ class TikTokUserAnalyzer:
 
             page.on("response", handle_response)
 
-            print("[*] Loading user profile page...")
+            print("[*] Cargando página del perfil...")
             try:
                 await page.goto(profile_url, timeout=timeout * 1000, wait_until="commit")
             except Exception as e:
-                print(f"[!] Notice loading page: {e}")
+                print(f"[!] Aviso al cargar la página: {e}")
 
             await asyncio.sleep(4)
 
-            # Extract Profile Metadata from SSR hydration tag
+            # Extraer metadatos de perfil de la etiqueta SSR
             profile_data = await page.evaluate("""() => {
                 const el = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
                 if (!el) return null;
@@ -176,9 +176,9 @@ class TikTokUserAnalyzer:
             user_obj = (profile_data or {}).get("user") or {}
             stats_obj = (profile_data or {}).get("stats") or {}
 
-            # Fallback to DOM parsing for profile if SSR is missing
+            # Parseo secundario mediante DOM si SSR no está presente
             if not user_obj:
-                print("[*] SSR profile tag not found, parsing DOM elements...")
+                print("[*] Etiqueta SSR no encontrada, extrayendo elementos del DOM...")
                 dom_info = await page.evaluate("""() => {
                     const getTxt = (sel) => {
                         const el = document.querySelector(sel);
@@ -207,15 +207,15 @@ class TikTokUserAnalyzer:
                     "videoCount": 0
                 }
 
-            # Scroll to trigger video/carousel grid loading
-            print("[*] Scrolling to load recent posts (videos & carousels)...")
+            # Desplazamiento para cargar la cuadrícula de publicaciones
+            print("[*] Desplazando página para cargar publicaciones recientes (videos y carruseles)...")
             for scroll_step in range(4):
                 if len(intercepted_items) >= max_videos:
                     break
                 await page.mouse.wheel(0, 1000)
                 await asyncio.sleep(1.5)
 
-            # Also check DOM for video & photo carousel cards if network interception missed them
+            # Comprobar también el DOM si la intercepción de red no capturó suficientes
             if len(intercepted_items) < max_videos:
                 dom_posts = await page.evaluate("""() => {
                     const anchors = Array.from(document.querySelectorAll('a[href*="/video/"], a[href*="/photo/"]'));
@@ -248,15 +248,15 @@ class TikTokUserAnalyzer:
                             "stats": {"diggCount": 0, "commentCount": 0, "collectCount": 0, "shareCount": 0, "playCount": 0}
                         })
 
-            # Check for Captcha challenge
+            # Comprobar si apareció el captcha
             captcha_present = await page.evaluate("""() => {
                 const el = document.querySelector('.captcha-disable-scroll, [class*="captcha"], #captcha_container');
                 return el !== null;
             }""")
             if captcha_present and len(intercepted_items) == 0:
-                print("\n[!] NOTICE: TikTok presented a slider/puzzle captcha verification.")
-                print("[!] Solution: Run 'python main.py extract-cookies --mode login' once to authenticate,")
-                print("    or run this command with '--headed' to complete the challenge interactively.\n")
+                print("\n[!] AVISO: TikTok presentó una verificación de captcha (deslizar rompecabezas).")
+                print("[!] Solución: Ejecuta 'python main.py extract-cookies --mode login' una vez para autenticarte,")
+                print("    o ejecuta este comando con '--headed' para resolver el desafío interactivamente.\n")
 
             await browser.close()
 

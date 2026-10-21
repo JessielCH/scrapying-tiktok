@@ -1,63 +1,68 @@
-# Contributing to TikTok Scraper & Session Cookie Manager
+# Guía de Contribución para TikTok Scraper & Gestor de Cookies
 
-First off, thank you for considering contributing to this project! It's people like you that make open source tools great.
-
----
-
-## Code of Conduct
-
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to the project maintainers.
+En primer lugar, ¡muchas gracias por tu interés en contribuir a este proyecto! La colaboración hace que el software libre y las herramientas abiertas crezcan.
 
 ---
 
-## How Can I Contribute?
+## Código de Conducta
 
-### Reporting Bugs
-Before creating bug reports, please check existing issues to avoid duplicates. When filing a bug report, include:
-- A clear, descriptive title.
-- Steps to reproduce the issue.
-- TikTok response status or error codes (e.g., HTTP 403, 10202, captcha trigger).
-- Operating system and Python version.
-- **Do not share personal cookies or credentials in issue descriptions or logs.**
+Al participar en este repositorio, aceptas adherirte a nuestro [Código de Conducta](CODE_OF_CONDUCT.md). Por favor informa cualquier comportamiento inapropiado al mantenedor del proyecto.
 
-### Suggesting Enhancements
-Feature requests are welcome! Please specify:
-- The problem you are trying to solve.
-- Your proposed solution or API design.
-- Any relevant TikTok endpoint or network trace details.
+---
+
+## ¿Cómo Puedo Contribuir?
+
+### Reportar Errores (Bugs)
+Antes de crear un nuevo reporte de error, revisa los issues existentes para evitar duplicados. Al reportar un problema, incluye:
+- Un título claro y descriptivo.
+- Pasos ordenados para reproducir el fallo.
+- Códigos de error o respuestas de TikTok (ej. HTTP 403, 10202, bloqueo por captcha).
+- Sistema operativo y versión de Python utilizada.
+- **No incluyas cookies personales ni credenciales privadas en los reportes o capturas.**
+
+### Sugerir Mejoras y Nuevas Características
+¡Las propuestas son bienvenidas! Al sugerir una funcionalidad, describe:
+- El problema o caso de uso que deseas resolver.
+- Tu propuesta de solución o diseño del código.
+- Cualquier información relevante sobre la estructura de TikTok.
 
 ### Pull Requests
-1. **Fork** the repository and create your branch from `main`:
+1. Realiza un **Fork** del repositorio y crea tu rama desde `main`:
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/nombre-de-tu-mejora
    ```
-2. **Install** dependencies and test your changes in an isolated environment.
-3. Follow the project's coding standards:
-   - Follow **PEP 8** style guidelines.
-   - Use type annotations wherever applicable.
-   - Write clear docstrings in English.
-4. Commit your changes with meaningful commit messages following [Conventional Commits](https://www.conventionalcommits.org/):
-   - `feat: add comment pagination support`
-   - `fix: handle expired ttwid cookie gracefully`
-   - `docs: update anti-detect reference guide`
-5. Push to your fork and submit a **Pull Request** against `main`.
+2. Instala las dependencias y prueba tus cambios en un entorno virtual aislado.
+3. Respeta los estándares del proyecto:
+   - Seguir las pautas de estilo **PEP 8**.
+   - Incluir anotaciones de tipo (*type hints*) en funciones principales.
+   - Documentar funciones de forma clara.
+4. Realiza commits con mensajes descriptivos siguiendo el estándar [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat: agregar soporte para extracción de comentarios`
+   - `fix: manejar expiración de cookie ttwid correctamente`
+   - `docs: actualizar guía de uso en el README`
+5. Sube tu rama y abre un **Pull Request** hacia `main`.
 
 ---
 
-## Development Setup
+## Configuración del Entorno de Desarrollo
 
 ```bash
-git clone https://github.com/<your-username>/scrap-tiktok.git
-cd scrap-tiktok
+git clone https://github.com/JessielCH/scrapying-tiktok.git
+cd scrapying-tiktok
 python -m venv .venv
-source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
+
+# En Windows:
+.venv\Scripts\activate
+# En Linux / macOS:
+# source .venv/bin/activate
+
 pip install -r requirements.txt
 playwright install chromium
 ```
 
 ---
 
-## Security & Privacy Guidelines
+## Pautas de Seguridad y Privacidad
 
-- Never commit real user cookies (`sessionid`), tokens, or credentials into the repository.
-- Ensure that tests and sample data use sanitized or mock identifiers.
+- Nunca subas al repositorio cookies reales de usuarios (`sessionid`), tokens o contraseñas.
+- Los archivos en la carpeta `data/` están ignorados por `.gitignore` para proteger tu privacidad.
