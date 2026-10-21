@@ -240,11 +240,10 @@ def run_interactive_menu():
                 print("[!] El nombre de usuario no puede estar vacío.")
                 continue
 
-            count_input = input("Número de publicaciones recientes a analizar [por defecto 10]: ").strip()
-            max_videos = int(count_input) if count_input.isdigit() else 10
+            max_videos = 10
 
-            headed_input = input("¿Abrir navegador visible para resolver el rompecabezas de captcha si aparece? (s/N) [por defecto N]: ").strip().lower()
-            headed = headed_input in ["y", "yes", "s", "si"]
+            headed_input = input("¿Abrir ventana de navegador para resolver el captcha si aparece? (S/n) [por defecto S]: ").strip().lower()
+            headed = headed_input not in ["n", "no"]
 
             class Args:
                 pass

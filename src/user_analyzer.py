@@ -217,13 +217,57 @@ class TikTokUserAnalyzer:
                     "videoCount": 0
                 }
 
+            async def is_captcha_active():
+                return await page.evaluate("""() => {
+                    const el = document.querySelector('.captcha-disable-scroll, [class*="captcha"], #captcha_container, #verify-bar, .verify-wrap');
+                    return el !== null;
+                }""")
+
+            # Si TikTok desplegó el captcha del rompecabezas
+            if await is_captcha_active():
+                if headed:
+                    print("\n" + "=" * 68)
+                    print("[CAPTCHA DETECTADO] TikTok desplegó un rompecabezas de verificación.")
+                    print("Por favor, arrastra la pieza del rompecabezas en la ventana del navegador.")
+                    print("Esperando hasta 60 segundos a que resuelvas el desafío...")
+                    print("=" * 68 + "\n")
+                    
+                    solved = False
+                    for i in range(60):
+                        await asyncio.sleep(1)
+                        if not await is_captcha_active():
+                            solved = True
+                            print("[OK] Rompecabezas resuelto exitosamente. Cargando publicaciones...\n")
+                            await asyncio.sleep(3)
+                            break
+                    if not solved:
+                        print("[!] Tiempo de espera agotado para resolver el captcha.")
+                else:
+                    print("\n[!] AVISO: TikTok bloqueó la carga de publicaciones con un captcha.")
+                    print("[!] Solución: Responde 's' para abrir la ventana y resolverlo,")
+                    print("    o inicia sesión una vez con la Opción [2] (Login QR) para evitar captchas.\n")
+
             # Desplazamiento para cargar la cuadrícula de publicaciones
             print("[*] Desplazando página para cargar publicaciones recientes (videos y carruseles)...")
-            for scroll_step in range(4):
+            for scroll_step in range(6):
                 if len(intercepted_items) >= max_videos:
                     break
-                await page.mouse.wheel(0, 1000)
-                await asyncio.sleep(1.5)
+                await page.mouse.wheel(0, 1200)
+                await asyncio.sleep(2)
+
+            # Si durante el scroll apareció el captcha nuevamente y la ventana está visible
+            if len(intercepted_items) == 0 and await is_captcha_active() and headed:
+                print("\n[!] El rompecabezas de verificación sigue activo en la ventana.")
+                print("[*] Por favor completa el deslizador en la ventana abierta...")
+                for i in range(45):
+                    await asyncio.sleep(1)
+                    if not await is_captcha_active():
+                        print("[OK] Rompecabezas resuelto. Desplazando cuadrícula...\n")
+                        await asyncio.sleep(2)
+                        for _ in range(4):
+                            await page.mouse.wheel(0, 1200)
+                            await asyncio.sleep(1.5)
+                        break
 
             # Comprobar también el DOM si la intercepción de red no capturó suficientes
             if len(intercepted_items) < max_videos:
@@ -257,16 +301,6 @@ class TikTokUserAnalyzer:
                             "imagePostInfo": {"images": []} if dp.get("postType") == "carousel" else None,
                             "stats": {"diggCount": 0, "commentCount": 0, "collectCount": 0, "shareCount": 0, "playCount": 0}
                         })
-
-            # Comprobar si apareció el captcha
-            captcha_present = await page.evaluate("""() => {
-                const el = document.querySelector('.captcha-disable-scroll, [class*="captcha"], #captcha_container');
-                return el !== null;
-            }""")
-            if captcha_present and len(intercepted_items) == 0:
-                print("\n[!] AVISO: TikTok presentó una verificación de captcha (deslizar rompecabezas).")
-                print("[!] Solución: Ejecuta 'python main.py extract-cookies --mode login' una vez para autenticarte,")
-                print("    o ejecuta este comando con '--headed' para resolver el desafío interactivamente.\n")
 
             await browser.close()
 
