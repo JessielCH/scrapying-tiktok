@@ -20,7 +20,7 @@ def ensure_output_dir(dir_path: Path) -> Path:
     return dir_path
 
 
-def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path) -> Path:
+def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path, username: str = "", followers: int = 0) -> Path:
     """
     Exporta la lista de publicaciones (videos y carruseles) a formato CSV tabular
     compatible con pandas DataFrame, Excel y herramientas de análisis de datos.
@@ -29,6 +29,8 @@ def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path) -> Path:
     ensure_output_dir(output_file.parent)
 
     fieldnames = [
+        "usuario",
+        "seguidores",
         "id",
         "tipo",
         "descripcion",
@@ -55,6 +57,8 @@ def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path) -> Path:
                     fecha_str = str(create_time)
 
             writer.writerow({
+                "usuario": username,
+                "seguidores": followers,
                 "id": p.get("id", ""),
                 "tipo": p.get("type", "video"),
                 "descripcion": p.get("description", "").replace("\n", " ").strip(),
@@ -67,6 +71,63 @@ def export_posts_to_csv(posts: List[Dict[str, Any]], output_file: Path) -> Path:
                 "fecha": fecha_str,
                 "url": p.get("url", "")
             })
+
+    return output_file
+
+
+def export_summary_to_csv(report: Dict[str, Any], output_file: Path) -> Path:
+    """
+    Exporta el resumen completo del perfil y del analisis numerico de publicaciones
+    a un archivo CSV estructurado (clave-valor con secciones) para analisis o visualizacion en Excel.
+    """
+    output_file = Path(output_file)
+    ensure_output_dir(output_file.parent)
+
+    profile = report.get("profile", {})
+    p_analysis = report.get("posts_analysis", {})
+    post_types = p_analysis.get("post_types", {})
+    totals = p_analysis.get("metrics_totals", {})
+    averages = p_analysis.get("metrics_averages", {})
+    perf = p_analysis.get("performance", {})
+    posts = p_analysis.get("posts", [])
+
+    rows = [
+        # Seccion Perfil
+        {"seccion": "PERFIL", "metrica": "Usuario", "valor": profile.get("username", "")},
+        {"seccion": "PERFIL", "metrica": "Nombre Visible", "valor": profile.get("nickname", "")},
+        {"seccion": "PERFIL", "metrica": "Biografia", "valor": profile.get("biography", "")},
+        {"seccion": "PERFIL", "metrica": "Cuenta Verificada", "valor": "Si" if profile.get("verified") else "No"},
+        {"seccion": "PERFIL", "metrica": "Seguidos", "valor": profile.get("following_count", 0)},
+        {"seccion": "PERFIL", "metrica": "Seguidores", "valor": profile.get("follower_count", 0)},
+        {"seccion": "PERFIL", "metrica": "Total Likes Recibidos", "valor": profile.get("total_likes_received", 0)},
+        {"seccion": "PERFIL", "metrica": "Total Videos Cuenta", "valor": profile.get("total_videos_count", 0)},
+
+        # Seccion Analisis Numerico Totales
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Publicaciones Analizadas", "valor": len(posts)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Videos Analizados", "valor": post_types.get("videos_count", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Carruseles Analizados", "valor": post_types.get("carousels_count", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Fotos en Carruseles", "valor": post_types.get("total_carousel_images", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Likes", "valor": totals.get("likes", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Comentarios", "valor": totals.get("comments", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Guardados (Favoritos)", "valor": totals.get("saves", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Compartidos", "valor": totals.get("shares", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Vistas", "valor": totals.get("views", 0)},
+        {"seccion": "ANALISIS NUMERICO", "metrica": "Total Interacciones", "valor": totals.get("total_interactions", 0)},
+
+        # Seccion Promedios y Rendimiento
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Promedio Likes por Post", "valor": averages.get("avg_likes", 0)},
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Promedio Comentarios por Post", "valor": averages.get("avg_comments", 0)},
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Promedio Guardados por Post", "valor": averages.get("avg_saves", 0)},
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Promedio Compartidos por Post", "valor": averages.get("avg_shares", 0)},
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Promedio Vistas por Post", "valor": averages.get("avg_views", 0)},
+        {"seccion": "PROMEDIOS Y RENDIMIENTO", "metrica": "Tasa Engagement", "valor": f"{perf.get('engagement_rate_percent', 0)}%"},
+    ]
+
+    with open(output_file, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=["seccion", "metrica", "valor"])
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(r)
 
     return output_file
 

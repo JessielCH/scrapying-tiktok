@@ -26,7 +26,15 @@ if sys.stdout.encoding != 'utf-8':
 from src.cookie_manager import TikTokCookieManager
 from src.scraper import TikTokScraper
 from src.user_analyzer import TikTokUserAnalyzer
-from src.utils import export_posts_to_csv
+from src.utils import export_posts_to_csv, export_summary_to_csv
+
+
+def safe_input(prompt: str, default: str = "") -> str:
+    """Función de entrada segura que evita excepciones EOFError o KeyboardInterrupt."""
+    try:
+        return input(prompt).strip()
+    except (EOFError, KeyboardInterrupt):
+        return default
 
 
 def handle_extract_cookies(args):
@@ -111,18 +119,23 @@ def handle_analyze_user(args):
 
     clean_username = profile['username'].replace('@', '')
 
-    # Exportar a JSON completo
+    # 1. Exportar a JSON completo
     json_out = Path(args.json_out) if args.json_out else (Path(args.output) / f"analysis_{clean_username}.json")
     with open(json_out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
 
-    # Exportar a CSV tabular (compatible con pandas DataFrame y Excel)
-    csv_out = Path(args.output) / f"posts_{clean_username}.csv"
-    export_posts_to_csv(posts, csv_out)
+    # 2. Exportar publicaciones a CSV tabular (con columnas de usuario y seguidores)
+    csv_posts_out = Path(args.output) / f"posts_{clean_username}.csv"
+    export_posts_to_csv(posts, csv_posts_out, username=profile['username'], followers=profile['follower_count'])
+
+    # 3. Exportar resumen del perfil y análisis numérico a CSV estructurado
+    csv_resumen_out = Path(args.output) / f"resumen_{clean_username}.csv"
+    export_summary_to_csv(report, csv_resumen_out)
 
     print("\n" + "-" * 65)
-    print(f"[OK] Datos tabulares exportados a CSV (DataFrame): {csv_out}")
-    print(f"[OK] Reporte completo guardado en formato JSON:    {json_out}")
+    print(f"[OK] Tabla de publicaciones guardada en CSV:   {csv_posts_out}")
+    print(f"[OK] Resumen del perfil y métricas en CSV:      {csv_resumen_out}")
+    print(f"[OK] Reporte completo guardado en formato JSON: {json_out}")
     print("-" * 65)
 
 
@@ -214,7 +227,7 @@ def run_interactive_menu():
         print(" [3] Salir")
         print("=" * 68)
 
-        choice = input("\nSelecciona una opción [1-3]: ").strip()
+        choice = safe_input("\nSelecciona una opción [1-3]: ", default="3")
 
         if choice == "1":
             if not cookie_mgr.has_valid_cookies():
@@ -225,7 +238,7 @@ def run_interactive_menu():
                 print("Es obligatorio inicializar las cookies:")
                 print("  [1] Iniciar sesion con codigo QR en navegador (Recomendado)")
                 print("  [2] Obtener cookies de invitado en segundo plano")
-                init_opt = input("Selecciona [1/2, por defecto 1]: ").strip()
+                init_opt = safe_input("Selecciona [1/2, por defecto 1]: ", default="1")
                 if init_opt == "2":
                     cookie_mgr.extract_guest_cookies()
                 else:
@@ -235,14 +248,14 @@ def run_interactive_menu():
                     print("\n[!] No se pudieron guardar cookies validas. Regresando al menu...")
                     continue
 
-            username = input("\nIngresa el usuario de TikTok (ej. @mrbeast o enlace del perfil): ").strip()
+            username = safe_input("\nIngresa el usuario de TikTok (ej. @mrbeast o enlace del perfil): ")
             if not username:
                 print("[!] El nombre de usuario no puede estar vacío.")
                 continue
 
             max_videos = 10
 
-            headed_input = input("¿Abrir ventana de navegador para resolver el captcha si aparece? (S/n) [por defecto S]: ").strip().lower()
+            headed_input = safe_input("¿Abrir ventana de navegador para resolver el captcha si aparece? (S/n) [por defecto S]: ", default="s").lower()
             headed = headed_input not in ["n", "no"]
 
             class Args:
@@ -257,13 +270,13 @@ def run_interactive_menu():
             args.timeout = 40
 
             handle_analyze_user(args)
-            input("\nPresiona Enter para regresar al menú principal...")
+            safe_input("\nPresiona Enter para regresar al menú principal...")
 
         elif choice == "2":
             print("\nSelecciona el modo de extracción de cookies:")
             print("  [1] Modo Invitado (Automático, sin ventana, cookies públicas como ttwid)")
             print("  [2] Modo Login (Abre navegador Chromium para escanear QR / iniciar sesión)")
-            mode_choice = input("Opción [1/2, por defecto 1]: ").strip()
+            mode_choice = safe_input("Opción [1/2, por defecto 1]: ", default="1")
             mode = "login" if mode_choice == "2" else "guest"
 
             class Args:
@@ -274,7 +287,7 @@ def run_interactive_menu():
             args.timeout = 300
 
             handle_extract_cookies(args)
-            input("\nPresiona Enter para regresar al menú principal...")
+            safe_input("\nPresiona Enter para regresar al menú principal...")
 
         elif choice in ["3", "exit", "quit", "q", "salir"]:
             print("\nSesión finalizada.\n")
