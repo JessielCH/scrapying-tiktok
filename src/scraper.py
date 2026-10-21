@@ -1,6 +1,14 @@
+"""
+Módulo de Extracción y Descarga Directa para TikTok
+====================================================
+Implementa el scraping de metadatos mediante hidratación SSR de servidor
+y suplantación de huella TLS con curl_cffi, además de la descarga directa de medios.
+"""
+
 import json
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+
 try:
     from bs4 import BeautifulSoup
 except ImportError:
@@ -17,8 +25,8 @@ from .anti_detect import get_default_headers
 
 class TikTokScraper:
     """
-    High-performance TikTok scraper leveraging SSR hydration data
-    and Chrome TLS impersonation via curl_cffi.
+    Extractor de alto rendimiento para TikTok basado en la hidratación SSR del servidor
+    y la suplantación de firmas TLS de Chrome mediante curl_cffi.
     """
 
     def __init__(self, cookies_path: Optional[str] = "data/cookies.json", impersonate: str = "chrome120"):
@@ -35,13 +43,13 @@ class TikTokScraper:
             missing.append("beautifulsoup4")
         if missing:
             raise RuntimeError(
-                f"Missing dependencies: {', '.join(missing)}. "
-                f"Please run: pip install {' '.join(missing)}"
+                f"Dependencias faltantes: {', '.join(missing)}. "
+                f"Por favor instala ejecutando: pip install {' '.join(missing)}"
             )
 
     def get_metadata(self, url: str) -> Dict[str, Any]:
         """
-        Fetches metadata for a video or user profile using the SSR hydration payload.
+        Extrae metadatos de un video, carrusel o perfil a partir del payload SSR de hidratación.
         """
         self._check_dependencies()
         headers = get_default_headers()

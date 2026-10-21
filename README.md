@@ -106,7 +106,7 @@ python main.py
 ```
 
 El menú te permitirá de forma guiada:
-1. **Analizar Perfil y Publicaciones (CSV / DataFrame):** Ingresar cualquier usuario (`@usuario`), extraer su perfil y últimos posts con métricas numéricas, y exportar los datos automáticamente a `data/posts_<usuario>.csv` y `data/analysis_<usuario>.json`.
+1. **Analizar Perfil y Publicaciones (CSV / DataFrame):** Ingresar cualquier usuario (`@usuario`), extraer su perfil y últimos posts con métricas numéricas, y exportar los datos automáticamente a `data/posts_<usuario>.csv`, `data/resumen_<usuario>.csv` y `data/analysis_<usuario>.json`.
 2. **Extraer / Renovar Cookies de Sesión:** Escoger entre el modo Invitado rápido o el inicio de sesión con código QR en Chromium para asegurar acceso permanente y evitar bloqueos.
 3. **Salir:** Finalizar la sesión.
 
@@ -165,9 +165,10 @@ python main.py analyze-user @usuario --cookies data/cookies.json
 python main.py analyze-user @usuario --headed
 ```
 
-El reporte se imprime ordenadamente en la consola y se exporta de forma automática en dos formatos complementarios en la carpeta `data/`:
-1. **`data/posts_<usuario>.csv`:** Archivo tabular con el desglose de cada publicación (ID, tipo, descripción, likes, comentarios, guardados, compartidos, vistas, fotos y fecha). Ideal para abrir en Microsoft Excel o cargarlo de inmediato en Python como un **DataFrame de pandas**.
-2. **`data/analysis_<usuario>.json`:** Estructura jerárquica con los metadatos completos del perfil, estadísticas globales, promedios y tasas de interacción.
+El reporte se imprime ordenadamente en la consola y se exporta de forma automática en tres formatos estructurados en la carpeta `data/`:
+1. **`data/posts_<usuario>.csv`:** Archivo tabular con el desglose individual de cada publicación (usuario, seguidores, ID, tipo, descripción, likes, comentarios, guardados, compartidos, vistas, fotos y fecha). Ideal para abrir en Microsoft Excel o cargarlo de inmediato en Python como un **DataFrame de pandas**.
+2. **`data/resumen_<usuario>.csv`:** Resumen estructurado clave-valor con la información del perfil (usuario, biografía, seguidores, likes) y el consolidado numérico completo (totales, promedios y tasa de engagement).
+3. **`data/analysis_<usuario>.json`:** Estructura jerárquica con los metadatos completos del perfil, estadísticas globales, promedios y tasas de interacción.
 
 ---
 

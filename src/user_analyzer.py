@@ -1,6 +1,10 @@
-import sys
-import json
-import time
+"""
+Módulo de Análisis de Perfiles y Publicaciones de TikTok
+=========================================================
+Proporciona la extracción automatizada del perfil y el cálculo estadístico
+de métricas de engagement para videos y carruseles fotográficos en TikTok.
+"""
+
 import asyncio
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -15,16 +19,16 @@ try:
 except ImportError:
     BeautifulSoup = None
 
-from .utils import load_cookies, ensure_output_dir
+from .utils import ensure_output_dir
 from .anti_detect import DEFAULT_USER_AGENT, get_stealth_browser_args, get_stealth_init_script
 from .cookie_manager import TikTokCookieManager
 
 
 class TikTokUserAnalyzer:
     """
-    Extracts TikTok user profile data (username, bio, followers, following)
-    and analyzes their latest posts (both videos and photo carousels) with
-    comprehensive numerical engagement metrics.
+    Extrae la información pública del perfil de usuario y calcula métricas
+    numéricas y estadísticas de rendimiento sobre sus publicaciones recientes
+    (compatible con publicaciones de video y carruseles fotográficos).
     """
 
     def __init__(self, cookies_path: Optional[str] = "data/cookies.json", output_dir: str = "data"):
@@ -33,7 +37,7 @@ class TikTokUserAnalyzer:
         ensure_output_dir(self.output_dir)
 
     def _clean_username(self, raw_input: str) -> str:
-        """Strips '@' or extracts handle from full URL."""
+        """Limpia el prefijo '@' o extrae el identificador único a partir de la URL del perfil."""
         cleaned = raw_input.strip()
         if "tiktok.com/@" in cleaned:
             cleaned = cleaned.split("tiktok.com/@")[-1].split("?")[0].split("/")[0]
@@ -49,16 +53,16 @@ class TikTokUserAnalyzer:
             missing.append("beautifulsoup4")
         if missing:
             raise RuntimeError(
-                f"Missing dependencies: {', '.join(missing)}. "
-                f"Please run: pip install {' '.join(missing)}"
+                f"Dependencias faltantes: {', '.join(missing)}. "
+                f"Por favor instala ejecutando: pip install {' '.join(missing)}"
             )
 
     def _extract_post_media_and_type(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Detects whether a post is a standard video or a photo carousel,
-        and extracts slide image URLs or direct video streams.
+        Detecta si la publicación es un video estándar o un carrusel de diapositivas,
+        extrayendo las URLs de las imágenes o el enlace directo del flujo de video.
         """
-        # 1. Check for carousel structures (imagePostInfo, imagePost, images)
+        # 1. Comprobar estructuras de carrusel (imagePostInfo, imagePost, images)
         image_post = item.get("imagePostInfo") or item.get("imagePost") or {}
         images_raw = image_post.get("images") or []
         if not images_raw and "images" in item and isinstance(item["images"], list):
@@ -102,7 +106,8 @@ class TikTokUserAnalyzer:
         timeout: int = 40
     ) -> Dict[str, Any]:
         """
-        Asynchronously fetches user profile and last N posts (videos and carousels) with numerical metrics.
+        Consulta de forma asíncrona el perfil del usuario y extrae sus publicaciones
+        recientes (videos y carruseles) calculando métricas numéricas agregadas.
         """
         self._check_dependencies()
         handle = self._clean_username(username)
@@ -304,7 +309,7 @@ class TikTokUserAnalyzer:
 
             await browser.close()
 
-            # Process and format the last N posts (both videos and carousels)
+            # Procesar y formatear las últimas N publicaciones (videos y carruseles)
             processed_posts: List[Dict[str, Any]] = []
             selected_items = intercepted_items[:max_videos]
 
@@ -315,7 +320,7 @@ class TikTokUserAnalyzer:
 
                 processed_posts.append({
                     "id": post_id,
-                    "type": media_info["post_type"],  # 'video' or 'carousel'
+                    "type": media_info["post_type"],  # 'video' o 'carousel'
                     "is_carousel": media_info["is_carousel"],
                     "url": f"https://www.tiktok.com/@{handle}/video/{post_id}" if post_id else "",
                     "description": item.get("desc", ""),
@@ -330,7 +335,7 @@ class TikTokUserAnalyzer:
                     "video_stream_url": media_info["video_stream_url"],
                 })
 
-            # Numerical Analysis Calculations
+            # Cálculos del análisis numérico
             total_posts_analyzed = len(processed_posts)
             total_videos_count = sum(1 for p in processed_posts if p["type"] == "video")
             total_carousels_count = sum(1 for p in processed_posts if p["type"] == "carousel")
@@ -349,16 +354,16 @@ class TikTokUserAnalyzer:
             avg_shares = round(total_shares / total_posts_analyzed, 2) if total_posts_analyzed > 0 else 0
             avg_views = round(total_views / total_posts_analyzed, 2) if total_posts_analyzed > 0 else 0
 
-            # Engagement Rate (% based on views)
+            # Tasa de interacción (Engagement Rate % basada en reproducciones)
             engagement_rate_views = (
                 round((total_engagements / total_views) * 100, 2) if total_views > 0 else 0.0
             )
 
-            # Top performing posts
+            # Publicaciones con mayor rendimiento
             top_post_by_views = max(processed_posts, key=lambda p: p["views"]) if processed_posts else None
             top_post_by_likes = max(processed_posts, key=lambda p: p["likes"]) if processed_posts else None
 
-            # Profile numerical values
+            # Valores numéricos del perfil
             followers_raw = stats_obj.get("followerCount", 0)
             following_raw = stats_obj.get("followingCount", 0)
             heart_raw = stats_obj.get("heartCount", 0)
@@ -431,7 +436,7 @@ class TikTokUserAnalyzer:
         headed: bool = False,
         timeout: int = 40
     ) -> Dict[str, Any]:
-        """Synchronous wrapper for analyze_user_async."""
+        """Envoltorio síncrono para analyze_user_async."""
         return asyncio.run(
             self.analyze_user_async(username, max_videos=max_videos, headed=headed, timeout=timeout)
         )

@@ -1,13 +1,18 @@
-import os
-import sys
+"""
+Módulo de Gestión de Sesiones y Cookies para TikTok
+====================================================
+Implementa la extracción de cookies públicas y autenticadas, persistencia
+en formatos JSON (Playwright) y Netscape (cookies.txt), y validación de sesiones.
+"""
+
 import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any
 
 try:
-    from playwright.async_api import async_playwright, BrowserContext
+    from playwright.async_api import async_playwright
 except ImportError:
     async_playwright = None
 
@@ -17,8 +22,8 @@ from .anti_detect import DEFAULT_USER_AGENT, get_stealth_browser_args, get_steal
 
 class TikTokCookieManager:
     """
-    Handles session and cookie extraction for TikTok.
-    Supports headless guest bootstrap and headed interactive QR/credentials login.
+    Gestiona la extracción, validación y persistencia de cookies de sesión para TikTok.
+    Soporta el modo invitado desatendido y el modo de autenticación interactiva con código QR.
     """
 
     def __init__(self, output_dir: str = "data"):
@@ -28,14 +33,14 @@ class TikTokCookieManager:
     def _check_playwright(self):
         if async_playwright is None:
             raise RuntimeError(
-                "Playwright is not installed. Please install it using:\n"
+                "Playwright no está instalado. Instálalo ejecutando:\n"
                 "  pip install playwright && playwright install chromium"
             )
 
     async def extract_guest_cookies_async(self) -> Dict[str, Any]:
         """
-        Launches a headless browser to obtain guest cookies (ttwid, msToken).
-        Saves data to cookies.json and cookies.txt.
+        Inicia un navegador en segundo plano para obtener cookies públicas de invitado (ttwid, msToken).
+        Almacena el estado en cookies.json y cookies.txt.
         """
         self._check_playwright()
         print("[*] Iniciando extracción en MODO INVITADO (segundo plano)...")
@@ -218,9 +223,9 @@ class TikTokCookieManager:
         return json_path
 
     def extract_guest_cookies(self) -> Dict[str, Any]:
-        """Synchronous wrapper for guest cookie extraction."""
+        """Envoltorio síncrono para la extracción de cookies en modo invitado."""
         return asyncio.run(self.extract_guest_cookies_async())
 
     def extract_login_cookies(self, timeout: int = 300) -> Dict[str, Any]:
-        """Synchronous wrapper for interactive login extraction."""
+        """Envoltorio síncrono para la autenticación interactiva de usuario."""
         return asyncio.run(self.extract_login_cookies_async(timeout=timeout))
