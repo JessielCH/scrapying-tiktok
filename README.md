@@ -56,15 +56,6 @@ scrap-tiktok/
 │       └── .gitkeep
 ├── main.py                                             # Punto de entrada unificado y menú interactivo
 ├── requirements.txt                                    # Dependencias de Python
-├── .agent                                              # Configuración del agente inteligente
-├── AGENTS.md                                           # Reglas operativas para agentes en el repositorio
-├── .agents/
-│   ├── rules/
-│   │   └── tiktok_scraping_rules.md                    # Reglas de ingeniería y anti-detección
-│   └── skills/
-│       └── tiktok-expert/
-│           ├── SKILL.md                                # Flujos de trabajo y guías técnicas
-│           └── references/                             # Guías de cookies, endpoints y anti-detección
 ├── CONTRIBUTING.md                                     # Guía para colaboradores
 ├── CODE_OF_CONDUCT.md                                 # Código de conducta
 ├── LICENSE                                             # Licencia MIT
