@@ -48,7 +48,7 @@ def handle_analyze_user(args):
             timeout=args.timeout
         )
     except Exception as e:
-        print(f"[!] Error al analizar el usuario: {e}")
+        print(f"[ERROR] Error al analizar el usuario: {e}")
         return
 
     profile = report["profile"]
@@ -60,7 +60,7 @@ def handle_analyze_user(args):
     posts = p_analysis["posts"]
 
     print("\n" + "=" * 65)
-    print("👤 RESUMEN DEL PERFIL DE USUARIO EN TIKTOK")
+    print("RESUMEN DEL PERFIL DE USUARIO EN TIKTOK")
     print("=" * 65)
     print(f"Usuario:                 {profile['username']}")
     print(f"Nombre Visible:          {profile['nickname']}")
@@ -72,7 +72,7 @@ def handle_analyze_user(args):
     print(f"Total de Videos:         {profile['total_videos_count']:,}")
 
     print("\n" + "=" * 65)
-    print(f"📊 ANÁLISIS NUMÉRICO: ÚLTIMOS {len(posts)} POSTS (VIDEOS Y CARRUSELES)")
+    print(f"ANALISIS NUMERICO: ULTIMOS {len(posts)} POSTS (VIDEOS Y CARRUSELES)")
     print("=" * 65)
     print(f"Publicaciones Analizadas: {len(posts)} ({post_types['videos_count']} videos, {post_types['carousels_count']} carruseles)")
     if post_types['carousels_count'] > 0:
@@ -93,11 +93,11 @@ def handle_analyze_user(args):
 
     if posts:
         print("\n" + "=" * 65)
-        print("🎬 DESGLOSE INDIVIDUAL DE CADA PUBLICACIÓN")
+        print("DESGLOSE INDIVIDUAL DE PUBLICACIONES")
         print("=" * 65)
         for idx, p in enumerate(posts, 1):
             desc = (p['description'][:60] + "...") if len(p['description']) > 60 else p['description']
-            type_badge = f"[CARRUSEL 📸 - {p['carousel_images_count']} fotos]" if p['is_carousel'] else "[VIDEO 🎬]"
+            type_badge = f"[CARRUSEL - {p['carousel_images_count']} diapositivas]" if p['is_carousel'] else "[VIDEO]"
             print(f"#{idx} {type_badge} [ID: {p['id']}]")
             print(f"   Descripción: {desc}")
             print(f"   Likes:       {p['likes']:,} | Comentarios: {p['comments']:,} | Guardados: {p['saves']:,}")
@@ -108,7 +108,7 @@ def handle_analyze_user(args):
     json_out = Path(args.json_out) if args.json_out else (Path(args.output) / f"analysis_{profile['username'].replace('@', '')}.json")
     with open(json_out, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    print(f"\n[✓] Análisis detallado guardado en formato JSON en: {json_out}")
+    print(f"\n[OK] Análisis detallado guardado en formato JSON en: {json_out}")
 
 
 def handle_scrape(args):
@@ -117,7 +117,7 @@ def handle_scrape(args):
     try:
         result = scraper.get_metadata(args.url)
     except Exception as e:
-        print(f"[!] Error: {e}")
+        print(f"[ERROR] {e}")
         return
 
     res_type = result.get("type")
@@ -130,12 +130,12 @@ def handle_scrape(args):
         music = data.get("music", {})
 
         print("\n" + "=" * 55)
-        print("📹 DETALLES DEL VIDEO DE TIKTOK")
+        print("DETALLES DEL VIDEO DE TIKTOK")
         print("=" * 55)
         print(f"ID:          {data.get('id')}")
         print(f"Autor:       @{author.get('uniqueId')} ({author.get('nickname')})")
         print(f"Descripción: {data.get('desc')}")
-        print(f"Métricas:    ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comentarios | 🔖 {stats.get('collectCount', 0):,} guardados | 👁️ {stats.get('playCount', 0):,} vistas")
+        print(f"Métricas:    Likes: {stats.get('diggCount', 0):,} | Comentarios: {stats.get('commentCount', 0):,} | Guardados: {stats.get('collectCount', 0):,} | Vistas: {stats.get('playCount', 0):,}")
         print(f"Música:      {music.get('title')} - {music.get('authorName')}")
         
         play_addr = video.get("playAddr")
@@ -150,13 +150,13 @@ def handle_scrape(args):
         music = data.get("music", {})
 
         print("\n" + "=" * 55)
-        print("📸 DETALLES DEL CARRUSEL DE FOTOS DE TIKTOK")
+        print("DETALLES DEL CARRUSEL DE FOTOS")
         print("=" * 55)
         print(f"ID:          {data.get('id')}")
         print(f"Autor:       @{author.get('uniqueId')} ({author.get('nickname')})")
         print(f"Descripción: {data.get('desc')}")
-        print(f"Fotos:       {len(images)} diapositivas")
-        print(f"Métricas:    ❤️ {stats.get('diggCount', 0):,} likes | 💬 {stats.get('commentCount', 0):,} comentarios | 🔖 {stats.get('collectCount', 0):,} guardados | 👁️ {stats.get('playCount', 0):,} vistas")
+        print(f"Diapositivas:{len(images)} fotos")
+        print(f"Métricas:    Likes: {stats.get('diggCount', 0):,} | Comentarios: {stats.get('commentCount', 0):,} | Guardados: {stats.get('collectCount', 0):,} | Vistas: {stats.get('playCount', 0):,}")
         print(f"Música:      {music.get('title')} - {music.get('authorName')}")
 
         if args.download and images:
@@ -166,7 +166,7 @@ def handle_scrape(args):
     elif res_type == "user":
         user = data.get("user", {})
         print("\n" + "=" * 55)
-        print("👤 DETALLES DEL PERFIL DE TIKTOK")
+        print("DETALLES DEL PERFIL DE TIKTOK")
         print("=" * 55)
         print(f"Usuario:     @{user.get('uniqueId')} ({user.get('nickname')})")
         print(f"Biografía:   {user.get('signature')}")
@@ -181,12 +181,12 @@ def run_interactive_menu():
     """Menú interactivo por consola en texto."""
     while True:
         print("\n" + "=" * 68)
-        print("     🔥 TIKTOK SCRAPER & ANALIZADOR DE ENGAGEMENT (INTERACTIVO) 🔥     ")
+        print("          TIKTOK SCRAPER & ANALIZADOR DE RENDIMIENTO              ")
         print("=" * 68)
-        print(" [1] 👤 Analizar Perfil de Usuario y Últimos Posts (Videos + Carruseles)")
-        print(" [2] 🍪 Extraer Cookies de Sesión (Modo Invitado o Login con QR)")
-        print(" [3] 📥 Scrapear Publicación Individual / Descargar (Video o Carrusel)")
-        print(" [4] ❌ Salir")
+        print(" [1] Analizar Perfil de Usuario y Publicaciones Recientes")
+        print(" [2] Extraer Cookies de Sesión (Modo Invitado o Login con QR)")
+        print(" [3] Scrapear Publicación Individual y Descargar Multimedia")
+        print(" [4] Salir")
         print("=" * 68)
 
         choice = input("\nSelecciona una opción [1-4]: ").strip()
@@ -256,7 +256,7 @@ def run_interactive_menu():
             input("\nPresiona Enter para regresar al menú principal...")
 
         elif choice in ["4", "exit", "quit", "q", "salir"]:
-            print("\n¡Hasta pronto!\n")
+            print("\nSesión finalizada.\n")
             sys.exit(0)
 
         else:

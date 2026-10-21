@@ -145,7 +145,7 @@ class TikTokScraper:
             except Exception as e:
                 print(f"[!] Aviso al descargar la diapositiva #{i}: {e}")
 
-        print(f"[✓] Descarga del carrusel completada: {len(saved_files)}/{len(image_urls)} fotos guardadas.")
+        print(f"[OK] Descarga del carrusel completada: {len(saved_files)}/{len(image_urls)} fotos guardadas.")
         return saved_files
 
     def download_video(self, video_url: str, output_path: str) -> Path:
@@ -179,5 +179,5 @@ class TikTokScraper:
                 if chunk:
                     f.write(chunk)
 
-        print(f"[✓] Descarga completada exitosamente: {output_file}")
+        print(f"[OK] Descarga completada exitosamente: {output_file}")
         return output_file

@@ -11,22 +11,22 @@ Un conjunto de herramientas de alto rendimiento, sigiloso y modular para la extr
 
 ---
 
-## 🌟 Características Principales
+## Características Principales
 
-- **🧩 100% Scraping Web Puro (Cero APIs Externas, Cero Wrappers Prediseñados):** Totalmente autónomo. No requiere APIs de desarrolladores de TikTok, ni tokens de pago (Apify, RapidAPI), ni librerías wrapper de terceros (como `TikTokApi` o `pyktok`).
-- **🛡️ Anti-Detección y Evasión TLS:** Utiliza `curl_cffi` para replicar con exactitud el apretón de manos TLS de Chrome 120/124 (huellas JA3/JA4), evitando respuestas directas de bloqueo `HTTP 403 Forbidden`.
-- **🍪 Gestión Completa de Sesiones y Cookies:**
+- **Scraping Web Puro (Cero APIs Externas, Cero Wrappers Prediseñados):** Totalmente autónomo. No requiere APIs de desarrolladores de TikTok, ni tokens de pago (Apify, RapidAPI), ni librerías wrapper de terceros (como `TikTokApi` o `pyktok`).
+- **Anti-Detección y Evasión TLS:** Utiliza `curl_cffi` para replicar con exactitud el apretón de manos TLS de Chrome 120/124 (huellas JA3/JA4), evitando respuestas directas de bloqueo `HTTP 403 Forbidden`.
+- **Gestión Completa de Sesiones y Cookies:**
   - **Modo Invitado (`--mode guest`):** Extracción automatizada en segundo plano (headless) de cookies públicas indispensables (`ttwid`, `msToken`).
   - **Modo Inicio de Sesión Interactivo (`--mode login`):** Abre un navegador Chromium visible para iniciar sesión manual o mediante código QR, capturando sesiones autenticadas completas (`sessionid`, `sessionid_ss`).
   - **Exportación Dual:** Guarda el estado en JSON (formato de almacenamiento de Playwright) y en formato estándar Netscape (`cookies.txt` compatible con `yt-dlp` y `curl`).
-- **📸 Soporte Total para Videos y Carruseles de Fotos (Slideshows):** Detecta automáticamente si una publicación es un video o un carrusel de diapositivas, extrayendo el número de fotos, enlaces a las imágenes o flujo de video, y todas las métricas numéricas.
-- **⚡ Extracción Ultra Rápida por Hidratación SSR:** Obtiene la información directamente de la etiqueta `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">` inyectada por el servidor, eliminando la necesidad de ejecutar JavaScript pesado o firmar tokens `X-Bogus`.
-- **🎥 Descarga de Medios Sin Marca de Agua:** Descarga directa de transmisiones de video en alta calidad (`playAddr` / `downloadAddr`) y descarga por lotes de todas las imágenes de carruseles.
-- **🤖 Menú de Consola Interactivo:** Interfaz amigable por terminal para ingresar perfiles, elegir cantidad de posts a analizar y alternar opciones visuales fácilmente.
+- **Soporte para Videos y Carruseles de Fotos (Slideshows):** Detecta automáticamente si una publicación es un video o un carrusel de diapositivas, extrayendo el número de fotos, enlaces a las imágenes o flujo de video, y todas las métricas numéricas.
+- **Extracción Rápida por Hidratación SSR:** Obtiene la información directamente de la etiqueta `<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">` inyectada por el servidor, eliminando la necesidad de ejecutar JavaScript pesado o firmar tokens `X-Bogus`.
+- **Descarga de Medios Sin Marca de Agua:** Descarga directa de transmisiones de video en alta calidad (`playAddr` / `downloadAddr`) y descarga por lotes de todas las imágenes de carruseles.
+- **Consola Interactiva:** Interfaz estructurada por terminal para ingresar perfiles, elegir cantidad de posts a analizar y alternar opciones visuales.
 
 ---
 
-## 🚫 Filosofía de Diseño: Cero APIs y Cero Wrappers de Terceros
+## Filosofía de Diseño: Cero APIs y Cero Wrappers de Terceros
 
 Un principio fundamental de este proyecto es la **ingeniería directa, básica y transparente**:
 - **Sin APIs Oficiales:** No se requiere solicitar acceso al portal de desarrolladores de TikTok, ni registrar aplicaciones OAuth, ni gestionar claves secretas o límites de cuota.
@@ -39,7 +39,7 @@ Un principio fundamental de este proyecto es la **ingeniería directa, básica y
 
 ---
 
-## 📁 Estructura del Repositorio
+## Estructura del Repositorio
 
 ```text
 scrap-tiktok/
@@ -65,7 +65,7 @@ scrap-tiktok/
 
 ---
 
-## 🚀 Instalación y Puesta en Marcha
+## Instalación y Puesta en Marcha
 
 ### 1. Requisitos Previos
 - Python 3.10 o superior instalado.
@@ -96,10 +96,10 @@ playwright install chromium
 
 ---
 
-## 📖 Guía de Uso
+## Guía de Uso
 
-### 🚀 Modo Interactivo por Consola (Recomendado)
-Para iniciar la experiencia interactiva, simplemente ejecuta `main.py` sin argumentos:
+### Modo Interactivo por Consola (Recomendado)
+Para iniciar la experiencia interactiva, ejecuta `main.py` sin argumentos:
 
 ```bash
 python main.py
@@ -148,7 +148,7 @@ Y analiza **numéricamente** sus últimos posts (tanto videos tradicionales como
 - Total de likes, comentarios, guardados (favoritos), compartidos y reproducciones/vistas.
 - Promedios por publicación (promedio de likes, comentarios, guardados, compartidos y vistas).
 - Tasa de interacción (Engagement Rate) calculada en base a visualizaciones.
-- Desglose detallado de cada publicación con su tipo (Video 🎬 o Carrusel 📸 con número de diapositivas).
+- Desglose detallado de cada publicación con su tipo (Video o Carrusel con número de diapositivas).
 
 #### Comandos Directos por Terminal:
 
@@ -218,7 +218,7 @@ yt-dlp --cookies data/cookies.txt "https://www.tiktok.com/@usuario/video/1234567
 
 ---
 
-## 🛡️ Detalles de Evasión y Anti-Detección
+## Detalles de Evasión y Anti-Detección
 
 El sistema Akamai Bot Manager de TikTok inspecciona el paquete inicial de conexión `ClientHello` de TLS. Las librerías convencionales como `requests` o `urllib` generan firmas anómalas que son bloqueadas al instante.
 
@@ -231,18 +231,18 @@ El sistema Akamai Bot Manager de TikTok inspecciona el paquete inicial de conexi
 
 ---
 
-## 🤝 Contribuciones
+## Contribuciones
 
-¡Las contribuciones son bienvenidas! Por favor revisa [CONTRIBUTING.md](CONTRIBUTING.md) y el [Código de Conducta](CODE_OF_CONDUCT.md) antes de enviar propuestas o mejoras.
+Las contribuciones son bienvenidas. Revisa [CONTRIBUTING.md](CONTRIBUTING.md) y el [Código de Conducta](CODE_OF_CONDUCT.md) antes de enviar propuestas o mejoras.
 
 ---
 
-## ⚖️ Aviso Legal
+## Aviso Legal
 
 Este proyecto ha sido desarrollado exclusivamente con fines educativos, de investigación académica y archivo de datos. La recolección de información debe cumplir con los términos de servicio de la plataforma y las normativas legales pertinentes sobre derechos de autor y privacidad. El autor no asume responsabilidad alguna por el uso indebido de esta herramienta.
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Distribuido bajo la [Licencia MIT](LICENSE).

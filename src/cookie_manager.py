@@ -66,15 +66,15 @@ class TikTokCookieManager:
             json_path = self.output_dir / "cookies.json"
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(storage_state, f, indent=2)
-            print(f"[✓] Estado de sesión guardado: {json_path}")
+            print(f"[OK] Estado de sesion guardado: {json_path}")
 
             # Guardar formato Netscape
             txt_path = self.output_dir / "cookies.txt"
             export_to_netscape_format(cookies, txt_path)
-            print(f"[✓] Cookies en formato Netscape guardadas: {txt_path}")
+            print(f"[OK] Cookies en formato Netscape guardadas: {txt_path}")
 
             cookie_names = [c["name"] for c in cookies]
-            print(f"[i] Total de cookies obtenidas: {len(cookies)} (ttwid: {'✓' if 'ttwid' in cookie_names else '✗'})")
+            print(f"[INFO] Total de cookies obtenidas: {len(cookies)} (ttwid: {'OK' if 'ttwid' in cookie_names else 'NO'})")
 
             await browser.close()
             return storage_state
@@ -117,7 +117,7 @@ class TikTokCookieManager:
                     cookies = await context.cookies()
                     names = [c["name"] for c in cookies]
                     if "sessionid" in names or "sessionid_ss" in names:
-                        print("\n[🎉] ¡Cookie de sesión autenticada 'sessionid' capturada exitosamente!")
+                        print("\n[OK] Cookie de sesion 'sessionid' capturada exitosamente.")
                         logged_in = True
                         await asyncio.sleep(2)
                         break
@@ -135,12 +135,12 @@ class TikTokCookieManager:
             json_path = self.output_dir / "cookies.json"
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(storage_state, f, indent=2)
-            print(f"[✓] Estado de sesión guardado: {json_path}")
+            print(f"[OK] Estado de sesion guardado: {json_path}")
 
             # Guardar formato Netscape
             txt_path = self.output_dir / "cookies.txt"
             export_to_netscape_format(cookies, txt_path)
-            print(f"[✓] Cookies en formato Netscape guardadas: {txt_path}")
+            print(f"[OK] Cookies en formato Netscape guardadas: {txt_path}")
 
             await browser.close()
             return storage_state
