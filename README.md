@@ -30,6 +30,7 @@ scrap-tiktok/
 │   ├── __init__.py                                     # Package exports
 │   ├── cookie_manager.py                               # Playwright session & cookie manager
 │   ├── scraper.py                                      # SSR hydration parser & video streamer
+│   ├── user_analyzer.py                                # User profile & engagement metrics analyzer
 │   ├── anti_detect.py                                  # Browser headers & stealth scripts
 │   └── utils.py                                        # Netscape/JSON serializers & loaders
 ├── data/                                               # Session & media output (gitignored)
@@ -124,9 +125,29 @@ To automatically download the video without watermarks:
 python main.py scrape "https://www.tiktok.com/@username/video/1234567890123456789" --download
 ```
 
+### 3. User Profile & Recent Videos Analysis
+
+Extract a TikTok user's complete profile information (username, display name, biography, verified badge, following count, follower count, total likes received, total video count) and calculate **numerical engagement metrics across their latest 10 videos** (likes, comments, bookmarks/saves, shares, views, and interaction rates):
+
+```bash
+# Analyze user profile and last 10 videos
+python main.py analyze-user @username
+
+# Analyze with custom video count limit
+python main.py analyze-user @username --max-videos 10
+
+# Pass authenticated session cookies
+python main.py analyze-user @username --cookies data/cookies.json
+
+# Run headed (if captcha verification slider is encountered)
+python main.py analyze-user @username --headed
+```
+
+Generated reports are displayed cleanly in the console and exported to structured JSON format at `data/analysis_<username>.json`.
+
 ---
 
-### 3. Python API Integration
+### 4. Python API Integration
 
 You can also import the modules directly in your own Python projects:
 
@@ -146,7 +167,7 @@ print(metadata)
 
 ---
 
-### 4. Downloading with `yt-dlp`
+### 5. Downloading with `yt-dlp`
 
 Use the exported Netscape cookie file to download high-resolution videos using `yt-dlp`:
 

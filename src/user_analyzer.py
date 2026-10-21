@@ -1,0 +1,335 @@
+import sys
+import json
+import time
+import asyncio
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+
+try:
+    from playwright.async_api import async_playwright
+except ImportError:
+    async_playwright = None
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+from .utils import load_cookies, ensure_output_dir
+from .anti_detect import DEFAULT_USER_AGENT, get_stealth_browser_args, get_stealth_init_script
+
+
+class TikTokUserAnalyzer:
+    """
+    Extracts TikTok user profile data (username, bio, followers, following)
+    and analyzes their latest videos with numerical engagement metrics.
+    """
+
+    def __init__(self, cookies_path: Optional[str] = "data/cookies.json", output_dir: str = "data"):
+        self.cookies_path = Path(cookies_path) if cookies_path else None
+        self.output_dir = Path(output_dir)
+        ensure_output_dir(self.output_dir)
+
+    def _clean_username(self, raw_input: str) -> str:
+        """Strips '@' or extracts handle from full URL."""
+        cleaned = raw_input.strip()
+        if "tiktok.com/@" in cleaned:
+            cleaned = cleaned.split("tiktok.com/@")[-1].split("?")[0].split("/")[0]
+        elif cleaned.startswith("@"):
+            cleaned = cleaned[1:]
+        return cleaned
+
+    def _check_dependencies(self):
+        missing = []
+        if async_playwright is None:
+            missing.append("playwright")
+        if BeautifulSoup is None:
+            missing.append("beautifulsoup4")
+        if missing:
+            raise RuntimeError(
+                f"Missing dependencies: {', '.join(missing)}. "
+                f"Please run: pip install {' '.join(missing)}"
+            )
+
+    async def analyze_user_async(
+        self,
+        username: str,
+        max_videos: int = 10,
+        headed: bool = False,
+        timeout: int = 40
+    ) -> Dict[str, Any]:
+        """
+        Asynchronously fetches user profile and last N videos with numerical metrics.
+        """
+        self._check_dependencies()
+        handle = self._clean_username(username)
+        profile_url = f"https://www.tiktok.com/@{handle}"
+
+        print(f"[*] Analyzing TikTok user: @{handle}")
+        print(f"[*] Profile URL: {profile_url}")
+
+        async with async_playwright() as p:
+            launch_args = get_stealth_browser_args()
+            browser = await p.chromium.launch(headless=not headed, args=launch_args)
+
+            # Load persistent cookies if present
+            context_kwargs = {
+                "viewport": {"width": 1920, "height": 1080},
+                "user_agent": DEFAULT_USER_AGENT,
+                "locale": "en-US",
+            }
+            if self.cookies_path and self.cookies_path.exists():
+                print(f"[i] Injecting session state from: {self.cookies_path}")
+                try:
+                    context = await browser.new_context(storage_state=str(self.cookies_path), **context_kwargs)
+                except Exception as e:
+                    print(f"[!] Warning reading storage_state ({e}), launching fresh context.")
+                    context = await browser.new_context(**context_kwargs)
+            else:
+                context = await browser.new_context(**context_kwargs)
+
+            await context.add_init_script(get_stealth_init_script())
+            page = await context.new_page()
+
+            # Network interception for post item list
+            intercepted_items: List[Dict[str, Any]] = []
+
+            async def handle_response(res):
+                if "/api/post/item_list/" in res.url:
+                    try:
+                        data = await res.json()
+                        items = data.get("itemList", [])
+                        if items:
+                            intercepted_items.extend(items)
+                    except Exception:
+                        pass
+
+            page.on("response", handle_response)
+
+            print("[*] Loading user profile page...")
+            try:
+                await page.goto(profile_url, timeout=timeout * 1000, wait_until="commit")
+            except Exception as e:
+                print(f"[!] Warning loading page: {e}")
+
+            await asyncio.sleep(4)
+
+            # Extract Profile Metadata from SSR hydration tag
+            profile_data = await page.evaluate("""() => {
+                const el = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                if (!el) return null;
+                try {
+                    const data = JSON.parse(el.innerText);
+                    const scope = data['__DEFAULT_SCOPE__'] || {};
+                    const userDetail = scope['webapp.user-detail'] || {};
+                    const userInfo = userDetail['userInfo'] || {};
+                    return {
+                        user: userInfo['user'] || null,
+                        stats: userInfo['stats'] || null
+                    };
+                } catch (e) {
+                    return null;
+                }
+            }""")
+
+            user_obj = (profile_data or {}).get("user") or {}
+            stats_obj = (profile_data or {}).get("stats") or {}
+
+            # Fallback to DOM parsing for profile if SSR is missing
+            if not user_obj:
+                print("[*] SSR profile tag not found, parsing DOM elements...")
+                dom_info = await page.evaluate("""() => {
+                    const getTxt = (sel) => {
+                        const el = document.querySelector(sel);
+                        return el ? el.innerText.trim() : '';
+                    };
+                    return {
+                        title: getTxt('[data-e2e="user-title"]'),
+                        subtitle: getTxt('[data-e2e="user-subtitle"]'),
+                        bio: getTxt('[data-e2e="user-bio"]'),
+                        following: getTxt('[data-e2e="following-count"]'),
+                        followers: getTxt('[data-e2e="followers-count"]'),
+                        likes: getTxt('[data-e2e="likes-count"]')
+                    };
+                }""")
+                user_obj = {
+                    "uniqueId": dom_info.get("subtitle") or handle,
+                    "nickname": dom_info.get("title") or handle,
+                    "signature": dom_info.get("bio", ""),
+                    "verified": False,
+                    "secUid": "",
+                }
+                stats_obj = {
+                    "followingCount": dom_info.get("following", "0"),
+                    "followerCount": dom_info.get("followers", "0"),
+                    "heartCount": dom_info.get("likes", "0"),
+                    "videoCount": 0
+                }
+
+            # Scroll to trigger video grid loading
+            print("[*] Scrolling to load recent videos...")
+            for scroll_step in range(4):
+                if len(intercepted_items) >= max_videos:
+                    break
+                await page.mouse.wheel(0, 1000)
+                await asyncio.sleep(1.5)
+
+            # Also check DOM for video cards if network interception missed them
+            if len(intercepted_items) < max_videos:
+                dom_videos = await page.evaluate("""() => {
+                    const anchors = Array.from(document.querySelectorAll('a[href*="/video/"]'));
+                    const seen = new Set();
+                    const list = [];
+                    for (const a of anchors) {
+                        const href = a.href;
+                        if (!seen.has(href)) {
+                            seen.add(href);
+                            const idMatch = href.match(/\\/video\\/(\\d+)/);
+                            const id = idMatch ? idMatch[1] : '';
+                            list.push({
+                                id: id,
+                                url: href,
+                                desc: a.innerText || ''
+                            });
+                        }
+                    }
+                    return list;
+                }""")
+                # Merge DOM items if needed
+                existing_ids = {item.get("id") for item in intercepted_items}
+                for dv in dom_videos:
+                    if dv["id"] and dv["id"] not in existing_ids:
+                        intercepted_items.append({
+                            "id": dv["id"],
+                            "desc": dv.get("desc", ""),
+                            "stats": {"diggCount": 0, "commentCount": 0, "collectCount": 0, "shareCount": 0, "playCount": 0}
+                        })
+
+            # Check for Captcha challenge
+            captcha_present = await page.evaluate("""() => {
+                const el = document.querySelector('.captcha-disable-scroll, [class*="captcha"], #captcha_container');
+                return el !== null;
+            }""")
+            if captcha_present and len(intercepted_items) == 0:
+                print("\n[!] NOTICE: TikTok presented a slider/puzzle captcha verification.")
+                print("[!] Solution: Run 'python main.py extract-cookies --mode login' once to authenticate,")
+                print("    or run this command with '--headed' to complete the challenge interactively.\n")
+
+            await browser.close()
+
+            # Process and format the last N videos
+            processed_videos: List[Dict[str, Any]] = []
+            selected_items = intercepted_items[:max_videos]
+
+            for item in selected_items:
+                vid_id = str(item.get("id", ""))
+                st = item.get("stats", {})
+                processed_videos.append({
+                    "video_id": vid_id,
+                    "url": f"https://www.tiktok.com/@{handle}/video/{vid_id}" if vid_id else "",
+                    "description": item.get("desc", ""),
+                    "create_time": item.get("createTime", 0),
+                    "likes": int(st.get("diggCount", 0)),
+                    "comments": int(st.get("commentCount", 0)),
+                    "saves": int(st.get("collectCount", 0)),
+                    "shares": int(st.get("shareCount", 0)),
+                    "views": int(st.get("playCount", 0)),
+                })
+
+            # Numerical Analysis Calculations
+            total_videos_analyzed = len(processed_videos)
+            total_likes = sum(v["likes"] for v in processed_videos)
+            total_comments = sum(v["comments"] for v in processed_videos)
+            total_saves = sum(v["saves"] for v in processed_videos)
+            total_shares = sum(v["shares"] for v in processed_videos)
+            total_views = sum(v["views"] for v in processed_videos)
+            total_engagements = total_likes + total_comments + total_saves + total_shares
+
+            avg_likes = round(total_likes / total_videos_analyzed, 2) if total_videos_analyzed > 0 else 0
+            avg_comments = round(total_comments / total_videos_analyzed, 2) if total_videos_analyzed > 0 else 0
+            avg_saves = round(total_saves / total_videos_analyzed, 2) if total_videos_analyzed > 0 else 0
+            avg_shares = round(total_shares / total_videos_analyzed, 2) if total_videos_analyzed > 0 else 0
+            avg_views = round(total_views / total_videos_analyzed, 2) if total_videos_analyzed > 0 else 0
+
+            # Engagement Rate (% based on views)
+            engagement_rate_views = (
+                round((total_engagements / total_views) * 100, 2) if total_views > 0 else 0.0
+            )
+
+            # Top performing video
+            top_video_by_views = max(processed_videos, key=lambda v: v["views"]) if processed_videos else None
+            top_video_by_likes = max(processed_videos, key=lambda v: v["likes"]) if processed_videos else None
+
+            # Profile numerical values
+            followers_raw = stats_obj.get("followerCount", 0)
+            following_raw = stats_obj.get("followingCount", 0)
+            heart_raw = stats_obj.get("heartCount", 0)
+            video_count_raw = stats_obj.get("videoCount", 0)
+
+            # Clean integer conversion
+            def parse_num(val):
+                if isinstance(val, (int, float)):
+                    return int(val)
+                s = str(val).upper().replace(",", "").strip()
+                try:
+                    if "M" in s:
+                        return int(float(s.replace("M", "")) * 1_000_000)
+                    if "K" in s:
+                        return int(float(s.replace("K", "")) * 1_000)
+                    if "B" in s:
+                        return int(float(s.replace("B", "")) * 1_000_000_000)
+                    return int(s)
+                except Exception:
+                    return 0
+
+            analysis_result = {
+                "profile": {
+                    "username": f"@{user_obj.get('uniqueId', handle)}",
+                    "nickname": user_obj.get("nickname", ""),
+                    "biography": user_obj.get("signature", ""),
+                    "verified": bool(user_obj.get("verified", False)),
+                    "sec_uid": user_obj.get("secUid", ""),
+                    "following_count": parse_num(following_raw),
+                    "follower_count": parse_num(followers_raw),
+                    "total_likes_received": parse_num(heart_raw),
+                    "total_videos_count": parse_num(video_count_raw),
+                },
+                "videos_analysis": {
+                    "sample_size": total_videos_analyzed,
+                    "metrics_totals": {
+                        "likes": total_likes,
+                        "comments": total_comments,
+                        "saves": total_saves,
+                        "shares": total_shares,
+                        "views": total_views,
+                        "total_interactions": total_engagements,
+                    },
+                    "metrics_averages": {
+                        "avg_likes": avg_likes,
+                        "avg_comments": avg_comments,
+                        "avg_saves": avg_saves,
+                        "avg_shares": avg_shares,
+                        "avg_views": avg_views,
+                    },
+                    "performance": {
+                        "engagement_rate_percent": engagement_rate_views,
+                        "best_video_id_by_views": (top_video_by_views or {}).get("video_id", ""),
+                        "best_video_id_by_likes": (top_video_by_likes or {}).get("video_id", ""),
+                    },
+                    "videos": processed_videos
+                }
+            }
+
+            return analysis_result
+
+    def analyze_user(
+        self,
+        username: str,
+        max_videos: int = 10,
+        headed: bool = False,
+        timeout: int = 40
+    ) -> Dict[str, Any]:
+        """Synchronous wrapper for analyze_user_async."""
+        return asyncio.run(
+            self.analyze_user_async(username, max_videos=max_videos, headed=headed, timeout=timeout)
+        )
