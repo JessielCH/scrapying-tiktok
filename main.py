@@ -211,11 +211,10 @@ def run_interactive_menu():
         print("-" * 68)
         print(" [1] Analizar Perfil y Publicaciones (Exportar a CSV / DataFrame)")
         print(" [2] Extraer / Renovar Cookies de Sesion (Login QR o Invitado)")
-        print(" [3] Consultar Publicacion Individual (Inspeccionar Metadatos)")
-        print(" [4] Salir")
+        print(" [3] Salir")
         print("=" * 68)
 
-        choice = input("\nSelecciona una opción [1-4]: ").strip()
+        choice = input("\nSelecciona una opción [1-3]: ").strip()
 
         if choice == "1":
             if not cookie_mgr.has_valid_cookies():
@@ -278,33 +277,12 @@ def run_interactive_menu():
             handle_extract_cookies(args)
             input("\nPresiona Enter para regresar al menú principal...")
 
-        elif choice == "3":
-            url = input("\nIngresa la URL del video o carrusel de TikTok: ").strip()
-            if not url:
-                print("[!] La URL no puede estar vacía.")
-                continue
-
-            dl_input = input("¿Deseas descargar el archivo multimedia (video MP4 o fotos del carrusel)? (s/N) [por defecto N]: ").strip().lower()
-            download = dl_input in ["y", "yes", "s", "si"]
-
-            class Args:
-                pass
-            args = Args()
-            args.url = url
-            args.cookies = "data/cookies.json"
-            args.download = download
-            args.out_dir = "data/downloads"
-            args.impersonate = "chrome120"
-
-            handle_scrape(args)
-            input("\nPresiona Enter para regresar al menú principal...")
-
-        elif choice in ["4", "exit", "quit", "q", "salir"]:
+        elif choice in ["3", "exit", "quit", "q", "salir"]:
             print("\nSesión finalizada.\n")
             sys.exit(0)
 
         else:
-            print("[!] Opción inválida. Por favor ingresa 1, 2, 3 o 4.")
+            print("[!] Opción inválida. Por favor ingresa 1, 2 o 3.")
 
 
 def main():

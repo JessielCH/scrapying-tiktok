@@ -106,10 +106,9 @@ python main.py
 ```
 
 El menú te permitirá de forma guiada:
-1. **Analizar Perfil y Últimos Posts:** Ingresar cualquier usuario (`@usuario` o URL completa), seleccionar cuántos posts evaluar (por defecto 10) y decidir si deseas abrir el navegador visible si surge un captcha de rompecabezas.
-2. **Extraer Cookies de Sesión:** Escoger entre el modo Invitado rápido o el modo Login con código QR.
-3. **Scrapear Publicación Individual:** Extraer detalles de un video o carrusel específico y descargarlo opcionalmente.
-4. **Salir:** Cerrar el programa.
+1. **Analizar Perfil y Publicaciones (CSV / DataFrame):** Ingresar cualquier usuario (`@usuario`), extraer su perfil y últimos posts con métricas numéricas, y exportar los datos automáticamente a `data/posts_<usuario>.csv` y `data/analysis_<usuario>.json`.
+2. **Extraer / Renovar Cookies de Sesión:** Escoger entre el modo Invitado rápido o el inicio de sesión con código QR en Chromium para asegurar acceso permanente y evitar bloqueos.
+3. **Salir:** Finalizar la sesión.
 
 ---
 
