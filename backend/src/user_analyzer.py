@@ -136,7 +136,10 @@ class TikTokUserAnalyzer:
             context_kwargs = {
                 "viewport": {"width": 1920, "height": 1080},
                 "user_agent": DEFAULT_USER_AGENT,
-                "locale": "es-ES,es;q=0.9,en;q=0.8",
+                "locale": "es-ES",
+                "extra_http_headers": {
+                    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8"
+                },
             }
             if self.cookies_path and self.cookies_path.exists():
                 print(f"[INFO] Inyectando cookies obligatorias desde: {self.cookies_path}")

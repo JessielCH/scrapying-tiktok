@@ -97,7 +97,10 @@ class TikTokCommentScraper:
             context_kwargs = {
                 "viewport": {"width": 1280, "height": 800},
                 "user_agent": DEFAULT_USER_AGENT,
-                "locale": "es-ES,es;q=0.9,en;q=0.8",
+                "locale": "es-ES",
+                "extra_http_headers": {
+                    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8"
+                },
             }
 
             if self.cookies_path and self.cookies_path.exists():
@@ -141,6 +144,24 @@ class TikTokCommentScraper:
             try:
                 await page.goto(post_url, timeout=timeout * 1000, wait_until="domcontentloaded")
                 await asyncio.sleep(3)
+
+                # Si el usuario ingresó la URL de un perfil (ej. @arigameplays),
+                # navegar automáticamente al video más reciente para auditar los comentarios
+                is_profile = ("/@" in post_url or "tiktok.com/@" in post_url) and ("/video/" not in post_url and "/photo/" not in post_url)
+                if is_profile:
+                    print(f"[*] URL de perfil detectada. Localizando publicación pública más reciente...")
+                    try:
+                        await page.wait_for_selector('a[href*="/video/"]', timeout=8000)
+                        video_link = await page.query_selector('a[href*="/video/"]')
+                        if video_link:
+                            href = await video_link.get_attribute("href")
+                            if href:
+                                target_video_url = href if href.startswith("http") else f"https://www.tiktok.com{href}"
+                                print(f"[*] Navegando a publicación más reciente: {target_video_url}")
+                                await page.goto(target_video_url, timeout=timeout * 1000, wait_until="domcontentloaded")
+                                await asyncio.sleep(3)
+                    except Exception as e_prof:
+                        print(f"[!] Aviso al buscar videos en el perfil: {e_prof}")
             except Exception as e:
                 print(f"[!] Aviso al navegar a la publicación: {e}")
 
