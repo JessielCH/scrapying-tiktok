@@ -250,9 +250,16 @@ class PsychometricsNLPEngine:
             breakdown_counts[trait_key] = breakdown_counts.get(trait_key, 0) + 1
             categorized_comments.append({
                 "comment_id": str(c.get("comment_id", f"c_{len(categorized_comments)}")),
+                "author_username": str(c.get("author_username") or "@usuario"),
+                "author_nickname": str(c.get("author_nickname") or "Usuario"),
+                "author_avatar": c.get("author_avatar"),
                 "author_hash": str(c.get("author_hash", "ANON_USER")),
                 "text": raw_text,
                 "likes": int(c.get("likes", 0)),
+                "created_at": str(c.get("created_at") or "Reciente"),
+                "video_id": str(c.get("video_id") or ""),
+                "video_title": str(c.get("video_title") or ""),
+                "video_url": str(c.get("video_url") or ""),
                 "primary_trait": trait_info["primary_trait"],
                 "trait_key": trait_info["trait_key"],
                 "trait_icon": trait_info["trait_icon"],

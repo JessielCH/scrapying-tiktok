@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { Film, ExternalLink, Heart } from 'lucide-react';
 
 const TRAITS_INFO = {
   all: {
     label: 'Todos los Comentarios',
     icon: '💬',
-    desc: 'Muestra completa de comentarios públicos anonimizados en memoria mediante algoritmo SHA-256.',
+    desc: 'Muestra completa de comentarios públicos de la audiencia con autoría real, métricas y referencia de video.',
     color: '#0284c7'
   },
   openness: {
@@ -44,21 +45,21 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [displayLimit, setDisplayLimit] = useState(12);
 
-  // Filtrado reactivo por rasgo y término de búsqueda
   const filteredComments = useMemo(() => {
     return comments.filter((c) => {
       const matchesTrait = selectedTrait === 'all' || c.trait_key === selectedTrait;
       const matchesSearch =
         !searchTerm.trim() ||
         c.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.primary_trait.toLowerCase().includes(searchTerm.toLowerCase());
+        (c.author_username && c.author_username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (c.author_nickname && c.author_nickname.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (c.primary_trait && c.primary_trait.toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesTrait && matchesSearch;
     });
   }, [comments, selectedTrait, searchTerm]);
 
   const activeTraitInfo = TRAITS_INFO[selectedTrait] || TRAITS_INFO.all;
 
-  // Conteos seguros
   const counts = {
     all: comments.length,
     openness: breakdown.openness || comments.filter((c) => c.trait_key === 'openness').length,
@@ -73,10 +74,10 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
       <div className="comments-header">
         <div>
           <div className="section-badge-pill">Psicometría Computacional del Lenguaje</div>
-          <h2 className="comments-title">Comentarios de la Audiencia Desglosados por Big Five</h2>
+          <h2 className="comments-title">Comentarios Reales de la Audiencia Desglosados por Big Five</h2>
           <p className="comments-subtitle">
-            Cada comentario público ha sido analizado e interpretado en una de las 5 dimensiones psicológicas
-            fundamentales del modelo Big Five, protegiendo la identidad con cifrado irreversible SHA-256 (LOPDP).
+            Mostrando usuarios reales, avatares, métricas y la publicación exacta de origen, clasificados
+            bajo las 5 dimensiones fundamentales de la personalidad psicológica.
           </p>
         </div>
 
@@ -87,7 +88,7 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
           </svg>
           <input
             type="text"
-            placeholder="Buscar por palabra en los comentarios..."
+            placeholder="Buscar por usuario o palabra..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="comments-search-input"
@@ -100,22 +101,25 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
         </div>
       </div>
 
-      {/* Pestañas de dimensiones Big Five */}
-      <div className="traits-tab-container">
+      {/* Pestañas de las 5 Dimensiones Big Five */}
+      <div className="traits-tabs-row">
         {Object.entries(TRAITS_INFO).map(([key, info]) => {
-          const isActive = selectedTrait === key;
+          const isSelected = selectedTrait === key;
           const count = counts[key] || 0;
+
           return (
             <button
               key={key}
-              className={`trait-tab-btn ${isActive ? 'active' : ''}`}
+              type="button"
+              className={`trait-tab-btn ${isSelected ? 'active' : ''}`}
+              style={{
+                borderColor: isSelected ? info.color : '#e2e8f0',
+                backgroundColor: isSelected ? `${info.color}12` : '#ffffff',
+                color: isSelected ? info.color : '#475569'
+              }}
               onClick={() => {
                 setSelectedTrait(key);
                 setDisplayLimit(12);
-              }}
-              style={{
-                '--tab-color': info.color,
-                borderColor: isActive ? info.color : 'transparent'
               }}
             >
               <span className="trait-tab-icon">{info.icon}</span>
@@ -139,7 +143,7 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
         </div>
       </div>
 
-      {/* Cuadrícula de comentarios filtrados */}
+      {/* Cuadrícula de comentarios con autoría real y video de origen */}
       {filteredComments.length === 0 ? (
         <div className="comments-empty-state">
           <div className="empty-icon">🔍</div>
@@ -153,14 +157,48 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
           <div className="comments-grid">
             {filteredComments.slice(0, displayLimit).map((c, idx) => (
               <div key={c.comment_id || idx} className="comment-card">
-                <div className="comment-card-top">
-                  <div className="author-info">
-                    <span className="author-hash-badge" title="Hash criptográfico SHA-256 anónimo">
-                      #{c.author_hash ? c.author_hash.substring(0, 8) : 'anonimo'}
-                    </span>
-                    <span className="privacy-pill">Anonimizado</span>
+                {/* Cabecera con Autor Real */}
+                <div className="comment-real-author-header">
+                  <img
+                    src={c.author_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.author_username || idx}`}
+                    alt={c.author_nickname}
+                    className="author-avatar-img"
+                    onError={(e) => {
+                      e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${idx}`;
+                    }}
+                  />
+                  <div className="author-names">
+                    <span className="author-display-name">{c.author_nickname || 'Usuario de TikTok'}</span>
+                    <span className="author-handle-name">{c.author_username || '@usuario'}</span>
                   </div>
+                  <span className="comment-time-pill">{c.created_at || 'Reciente'}</span>
+                </div>
 
+                {/* Referencia a la Publicación donde aparece */}
+                {(c.video_title || c.video_id) && (
+                  <div className="comment-video-origin" title={c.video_title || ''}>
+                    <Film size={12} className="text-cyan shrink-0" />
+                    <span className="video-origin-label">En video:</span>
+                    <span className="video-origin-title">{c.video_title || `Video ID ${c.video_id}`}</span>
+                    {c.video_url && (
+                      <a
+                        href={c.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="video-origin-link"
+                        title="Ver video en TikTok"
+                      >
+                        <ExternalLink size={11} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Texto del Comentario */}
+                <p className="comment-text">"{c.text}"</p>
+
+                {/* Pie de Tarjeta con Dimensión Big Five y Likes */}
+                <div className="comment-card-bottom">
                   <span
                     className="trait-pill"
                     style={{
@@ -171,23 +209,20 @@ export default function CommentsSection({ comments = [], breakdown = {} }) {
                     <span>{c.trait_icon || '💬'}</span>
                     <span>{c.primary_trait}</span>
                   </span>
+
+                  <div className="comment-likes" title={`${c.likes} me gusta`}>
+                    <Heart size={13} className="text-rose" />
+                    <span>{c.likes || 0}</span>
+                  </div>
                 </div>
 
-                <p className="comment-text">"{c.text}"</p>
-
-                <div className="comment-card-bottom">
+                {/* Explicación Psicolingüística */}
+                {c.explanation && (
                   <div className="comment-why" title="Fundamento psicolingüístico">
                     <span className="why-label">Interpretación:</span>
                     <span className="why-text">{c.explanation}</span>
                   </div>
-
-                  <div className="comment-likes" title={`${c.likes} me gusta en TikTok`}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                    <span>{c.likes || 0}</span>
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

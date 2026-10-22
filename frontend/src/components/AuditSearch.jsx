@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Film } from 'lucide-react';
 
 export default function AuditSearch({ onAudit, isLoading }) {
   const [url, setUrl] = useState('https://www.tiktok.com/@arigameplays');
   const [sampleSize, setSampleSize] = useState(150);
+  const [maxVideos, setMaxVideos] = useState(10);
   const [headed, setHeaded] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (url.trim()) {
-      onAudit(url.trim(), sampleSize, headed);
+      onAudit(url.trim(), sampleSize, maxVideos, headed);
     }
   };
 
@@ -35,6 +36,23 @@ export default function AuditSearch({ onAudit, isLoading }) {
           />
         </div>
 
+        {/* Selector de publicaciones a auditar (hasta 30) */}
+        <div className="select-wrapper-with-icon" title="Cantidad de publicaciones/videos recientes a auditar">
+          <Film size={15} className="select-inner-icon" />
+          <select
+            className="sample-select video-count-select"
+            value={maxVideos}
+            onChange={(e) => setMaxVideos(Number(e.target.value))}
+            disabled={isLoading}
+          >
+            <option value={5}>Auditar: 5 videos</option>
+            <option value={10}>Auditar: 10 videos (Recomendado)</option>
+            <option value={20}>Auditar: 20 videos</option>
+            <option value={30}>Auditar: 30 videos (Completo)</option>
+          </select>
+        </div>
+
+        {/* Selector de muestra de comentarios */}
         <select
           className="sample-select"
           value={sampleSize}
@@ -42,11 +60,12 @@ export default function AuditSearch({ onAudit, isLoading }) {
           disabled={isLoading}
         >
           <option value={100}>Muestra: 100 comentarios</option>
-          <option value={150}>Muestra: 150 comentarios (Recomendado)</option>
+          <option value={150}>Muestra: 150 comentarios</option>
           <option value={300}>Muestra: 300 comentarios</option>
           <option value={500}>Muestra: 500 comentarios (Profundo)</option>
         </select>
 
+        {/* Casilla de navegador visible interactivo */}
         <label className="headed-toggle-label" title="Abre una ventana de navegador en pantalla por si TikTok solicita resolver un puzzle Captcha manualmente">
           <input
             type="checkbox"
