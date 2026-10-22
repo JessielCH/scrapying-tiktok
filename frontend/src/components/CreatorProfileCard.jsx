@@ -92,10 +92,10 @@ export default function CreatorProfileCard({ profile, target }) {
       <div className="creator-card-footer">
         <div className="footer-tag">
           <span className="pulse-indicator"></span>
-          <span>Objetivo de Auditoría: {target?.url || 'Enlace directo de TikTok'}</span>
+          <span>Objetivo de Extracción: {target?.url || 'Enlace directo de TikTok'}</span>
         </div>
         <div className="footer-cert">
-          <span>LOPDP Ecuador Arts. 19 & 21 • Protección Forense SHA-256</span>
+          <span>LOPDP Ecuador Arts. 19 & 21 • Firma SHA-256</span>
         </div>
       </div>
     </div>

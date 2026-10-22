@@ -44,8 +44,8 @@ except ImportError:
     from ..src.gemini_synthesizer import GeminiRiskSynthesizer
 
 app = FastAPI(
-    title="Auditoría Demográfica y Psicometría en Redes Sociales API",
-    description="Motor de análisis lingüístico multi-video, estimación etaria, evidencia forense inmutable y brand safety.",
+    title="Extracción Demográfica y Psicometría en Redes Sociales API",
+    description="Motor de análisis lingüístico multi-video, estimación etaria y métricas de TikTok.",
     version="1.2.0"
 )
 
@@ -66,12 +66,12 @@ forensic_vault = ForensicVault(evidence_dir=str(EVIDENCE_DIR), cookies_txt_path=
 nlp_engine = PsychometricsNLPEngine(epsilon=float(os.getenv("DP_EPSILON", 1.0)))
 gemini_synthesizer = GeminiRiskSynthesizer()
 
-# Estado de telemetría de auditoría en vivo
+# Estado de telemetría de extracción en vivo
 AUDIT_PROGRESS_STATE: Dict[str, Any] = {
     "phase": "IDLE",
     "percent": 0,
-    "message": "Sistema listo para auditar",
-    "logs": ["[INFO] Esperando objetivo de auditoría..."],
+    "message": "Sistema listo para extraer datos",
+    "logs": ["[INFO] Esperando objetivo de extracción..."],
     "is_running": False
 }
 
@@ -160,14 +160,14 @@ async def perform_audit(request: AuditRequest):
     creator = extract_creator_handle(url)
     timestamp_utc = datetime.now(timezone.utc).isoformat()
 
-    set_progress("INIT", 5, f"Iniciando auditoría forense para objetivo: {url}")
+    set_progress("INIT", 5, f"Iniciando extracción y análisis para objetivo: {url}")
 
-    # 1. Bóveda Forense Inmutable
+    # 1. Preservación de Evidencia Multimedia
     evidence_url = None
     evidence_sha256 = None
     if request.download_evidence and ("/video/" in url or "/photo/" in url):
         try:
-            set_progress("FORENSIC", 12, f"Preservando evidencia inmutable del video {video_id}...")
+            set_progress("MEDIA_SAVE", 12, f"Preservando copia de video {video_id}...")
             manifest = forensic_vault.capture_evidence(
                 video_url=url,
                 video_id=video_id,
@@ -176,7 +176,7 @@ async def perform_audit(request: AuditRequest):
             evidence_url = f"/api/v1/evidence/{manifest['local_file_name']}"
             evidence_sha256 = manifest["sha256_hash"]
         except Exception as e:
-            print(f"[!] Aviso al preservar evidencia forense: {e}")
+            print(f"[!] Aviso al preservar copia del video: {e}")
             evidence_sha256 = "EVID_PENDING_OR_PROFILE"
 
     # 2. Extracción Multi-Video con Comentarios Reales
@@ -194,7 +194,7 @@ async def perform_audit(request: AuditRequest):
                 max_videos=request.max_videos,
                 comments_per_video=max(10, request.sample_comments // max(1, request.max_videos)),
                 headed=request.headed_browser,
-                timeout=180,
+                timeout=300,
                 progress_callback=set_progress
             )
         )
@@ -278,7 +278,7 @@ async def perform_audit(request: AuditRequest):
         CategorizedComment(**c) for c in global_nlp.get("categorized_comments", [])
     ]
 
-    set_progress("COMPLETE", 100, f"Auditoría completada exitosamente. {len(processed_videos)} videos y {len(all_raw_comments)} comentarios auditados.")
+    set_progress("COMPLETE", 100, f"Extracción completada exitosamente. {len(processed_videos)} videos y {len(all_raw_comments)} comentarios procesados.")
     AUDIT_PROGRESS_STATE["is_running"] = False
 
     return AuditResponse(

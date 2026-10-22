@@ -62,16 +62,17 @@ class TikTokCommentScraper:
         self,
         page,
         progress_callback: Optional[Callable[[str, int, str], None]] = None,
-        max_wait: int = 180
+        max_wait: int = 300
     ) -> bool:
         """
-        Detecta si TikTok presentó un desafío o captcha de rompecabezas
-        y espera pacientemente hasta `max_wait` segundos (3 minutos) a que el usuario lo resuelva.
+        Detecta si TikTok presentó un desafío o captcha de rompecabezas/deslizador
+        y espera pacientemente hasta `max_wait` segundos (5 minutos) a que el usuario lo resuelva en pantalla.
         """
         check_script = """() => {
             const selectors = [
                 '#tiktok-verify-ele',
                 '#captcha-verify-image',
+                '#captcha-verify-container-main-page',
                 '[class*="captcha-verify"]',
                 '[class*="secsdk-captcha"]',
                 '#captcha_container',
@@ -82,13 +83,17 @@ class TikTokCommentScraper:
             ];
             for (const s of selectors) {
                 const el = document.querySelector(s);
-                if (el && el.offsetParent !== null) return true;
+                if (el && (el.offsetParent !== null || el.offsetHeight > 0 || el.offsetWidth > 0)) return true;
             }
             const txt = document.body ? document.body.innerText : '';
             return txt.includes('Verifica para continuar') ||
                    txt.includes('Verify to continue') ||
                    txt.includes('Arrastra el control deslizante') ||
-                   txt.includes('Drag the slider');
+                   txt.includes('Arrastra el deslizador') ||
+                   txt.includes('encajar en el puzle') ||
+                   txt.includes('Drag the slider') ||
+                   txt.includes('deslizador') ||
+                   txt.includes('puzle');
         }"""
 
         has_captcha = False
@@ -98,7 +103,7 @@ class TikTokCommentScraper:
             pass
 
         if has_captcha:
-            msg = f"⚠️ [CAPTCHA DETECTADO] Resuelve el rompecabezas en la ventana del navegador (tienes {max_wait}s)..."
+            msg = f"⚠️ [DESAFÍO TIKTOK DETECTADO] Por favor arrastra el deslizador del puzle en la ventana (tienes {max_wait}s)..."
             print(f"\n{msg}\n")
             if progress_callback:
                 progress_callback("CAPTCHA_WAIT", 25, msg)
@@ -114,7 +119,7 @@ class TikTokCommentScraper:
                     pass
 
                 if not still_captcha:
-                    success_msg = "✅ [CAPTCHA RESUELTO] ¡Verificación completada exitosamente! Continuando extracción..."
+                    success_msg = "✅ [DESAFÍO RESUELTO] ¡Verificación completada! Continuando extracción de datos..."
                     print(f"\n{success_msg}\n")
                     if progress_callback:
                         progress_callback("CAPTCHA_SOLVED", 28, success_msg)
@@ -122,14 +127,14 @@ class TikTokCommentScraper:
                     return True
 
                 now = time.time()
-                if now - last_alert >= 15:
+                if now - last_alert >= 10:
                     last_alert = now
                     remaining = int(max_wait - (now - start))
                     if progress_callback:
                         progress_callback(
                             "CAPTCHA_WAIT",
                             25,
-                            f"⏳ Esperando resolución del rompecabezas en la ventana... ({remaining}s restantes)"
+                            f"⏳ Esperando resolución del rompecabezas en pantalla... ({remaining}s restantes)"
                         )
 
             print("[!] Tiempo límite para resolver el captcha alcanzado.")
@@ -142,7 +147,7 @@ class TikTokCommentScraper:
         max_videos: int = 10,
         comments_per_video: int = 30,
         headed: bool = False,
-        timeout: int = 180,
+        timeout: int = 300,
         progress_callback: Optional[Callable[[str, int, str], None]] = None
     ) -> Dict[str, Any]:
         """
@@ -365,12 +370,12 @@ class TikTokCommentScraper:
 
                     # Bucle paciente de hasta 120 segundos para que el usuario pueda resolver captcha
                     while time.time() - start_disc < 120:
-                        # Si hay un captcha activo, esperar activamente hasta 180s a que se resuelva
-                        await self._wait_for_captcha_if_present(page, progress_callback, max_wait=180)
+                        # Si hay un captcha activo, esperar activamente hasta 300s a que se resuelva
+                        await self._wait_for_captcha_if_present(page, progress_callback, max_wait=300)
 
-                        # Cerrar modal si estorba
+                        # Cerrar modal o aviso si estorba
                         try:
-                            modal_close = await page.query_selector('[data-e2e="modal-close-icon"], button[aria-label="Cerrar"], [class*="ModalClose"]')
+                            modal_close = await page.query_selector('#captcha_close_button, button[aria-label="Close"], [data-e2e="modal-close-icon"], button[aria-label="Cerrar"], [class*="ModalClose"]')
                             if modal_close:
                                 await modal_close.click()
                                 await asyncio.sleep(1.0)
@@ -457,11 +462,19 @@ class TikTokCommentScraper:
                     "cover_url": f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg"
                 }
 
-                # Navegar al video para extraer SSR y comentarios con espera de captcha
+                # Navegar al video para extraer SSR y comentarios reales
                 try:
                     await page.goto(v_url, timeout=45000, wait_until="domcontentloaded")
-                    await self._wait_for_captcha_if_present(page, progress_callback, max_wait=180)
-                    await asyncio.sleep(2.5)
+                    await asyncio.sleep(2.0)
+
+                    # Cerrar modal de inicio o aviso si interfiere
+                    try:
+                        modal_close = await page.query_selector('#captcha_close_button, button[aria-label="Close"], [data-e2e="modal-close-icon"], [class*="ModalClose"]')
+                        if modal_close:
+                            await modal_close.click()
+                            await asyncio.sleep(1.0)
+                    except Exception:
+                        pass
 
                     # Extraer metadatos 100% reales de SSR
                     ssr_meta = await page.evaluate("""() => {
@@ -497,26 +510,60 @@ class TikTokCommentScraper:
                         if ssr_meta.get("cover"):
                             real_video_meta["cover_url"] = ssr_meta["cover"]
 
-                    # Desplazamiento e interacción para capturar comentarios reales
-                    for _ in range(3):
-                        await page.mouse.wheel(0, 800)
-                        await asyncio.sleep(1.0)
+                    # Hacer clic explícito en el icono de comentarios para abrir el panel y activar la carga de red
+                    try:
+                        comment_btn = await page.query_selector('[data-e2e="comment-icon"], div[data-e2e="comment-icon"], strong[data-e2e="comment-count"]')
+                        if not comment_btn:
+                            comment_btn = await page.query_selector('button[data-e2e="comments"], [role="tab"]:has-text("Comentarios")')
+                        if comment_btn:
+                            await comment_btn.click()
+                            await asyncio.sleep(2.0)
+                    except Exception as e_c_click:
+                        print(f"[*] Aviso al activar panel de comentarios: {e_c_click}")
+
+                    # Esperar pacientemente (hasta 5 minutos) si TikTok presenta el puzle deslizador en pantalla
+                    await self._wait_for_captcha_if_present(page, progress_callback, max_wait=300)
+                    await asyncio.sleep(2.0)
+
+                    # Persistir el estado de sesión actualizado
+                    try:
+                        if self.cookies_path:
+                            await context.storage_state(path=str(self.cookies_path))
+                    except Exception:
+                        pass
+
+                    # Descartar notificaciones emergentes que puedan superponerse
+                    try:
+                        await page.evaluate("""() => {
+                            const toastCloses = document.querySelectorAll('button[aria-label="Close"], [class*="toast"] button, [class*="notification"] button');
+                            toastCloses.forEach(b => { try { b.click(); } catch(e){} });
+                        }""")
+                    except Exception:
+                        pass
+
+                    # Desplazamiento e interacción en el panel de comentarios
+                    for _ in range(5):
+                        await page.mouse.wheel(0, 1000)
+                        await asyncio.sleep(1.2)
 
                     # Extraer comentarios reales del DOM
                     dom_data = await page.evaluate("""() => {
-                        const items = document.querySelectorAll('[data-e2e="comment-item"], [class*="CommentItem"]');
                         const list = [];
+                        const seenTexts = new Set();
+
+                        const items = document.querySelectorAll('[data-e2e="comment-item"], [class*="CommentItem"], [class*="DivCommentItemContainer"]');
                         for (const el of items) {
                             const userA = el.querySelector('a[href*="/@"], [data-e2e*="user-name"]');
                             const nickSpan = el.querySelector('[class*="Nickname"], [data-e2e*="nickname"]');
-                            const textP = el.querySelector('[data-e2e="comment-level-1"], p, [class*="CommentText"]');
+                            const textP = el.querySelector('[data-e2e="comment-level-1"], p, [class*="CommentText"], span[class*="CommentText"]');
                             const likeSpan = el.querySelector('[data-e2e="comment-like-count"]');
                             const timeSpan = el.querySelector('[data-e2e="comment-time"], [class*="Time"]');
                             const avatarImg = el.querySelector('img');
 
                             const uHandle = userA ? userA.innerText.trim() : '';
                             const txt = textP ? textP.innerText.trim() : '';
-                            if (txt) {
+                            if (txt && !seenTexts.has(txt)) {
+                                seenTexts.add(txt);
                                 list.push({
                                     username: uHandle,
                                     nickname: nickSpan ? nickSpan.innerText.trim() : uHandle,
@@ -527,10 +574,36 @@ class TikTokCommentScraper:
                                 });
                             }
                         }
+
+                        if (list.length === 0) {
+                            const level1Els = document.querySelectorAll('[data-e2e="comment-level-1"], p[class*="CommentText"]');
+                            for (const p of level1Els) {
+                                const txt = p.innerText ? p.innerText.trim() : '';
+                                if (txt && !seenTexts.has(txt)) {
+                                    seenTexts.add(txt);
+                                    const parent = p.closest('[class*="Comment"]') || p.parentElement;
+                                    const uA = parent ? parent.querySelector('a[href*="/@"]') : null;
+                                    const uName = uA ? uA.innerText.trim() : '';
+                                    list.push({
+                                        username: uName,
+                                        nickname: uName || 'Usuario',
+                                        text: txt,
+                                        likes: '0',
+                                        created_at: 'Reciente',
+                                        avatar: ''
+                                    });
+                                }
+                            }
+                        }
                         return list;
                     }""")
 
+                    seen_text_set = set()
                     for d in dom_data:
+                        t = d.get("text", "").strip()
+                        if not t or t in seen_text_set:
+                            continue
+                        seen_text_set.add(t)
                         u_name = d.get("username") or f"@usuario_{len(video_comments) + 1}"
                         video_comments.append({
                             "comment_id": f"c_{vid_id}_{len(video_comments) + 1}",
@@ -538,7 +611,7 @@ class TikTokCommentScraper:
                             "author_nickname": d.get("nickname") or u_name,
                             "author_avatar": d.get("avatar") or f"https://api.dicebear.com/7.x/avataaars/svg?seed={u_name}",
                             "author_hash": self.pseudonymize_identifier(u_name),
-                            "text": d.get("text", ""),
+                            "text": t,
                             "likes": int(str(d.get("likes", "0")).replace("K", "000").replace("M", "000000").replace(".", "") or 0),
                             "created_at": d.get("created_at") or "Reciente",
                             "video_id": vid_id,
@@ -551,9 +624,12 @@ class TikTokCommentScraper:
                 # Incorporar comentarios reales interceptados por API de red
                 if vid_id in captured_api_comments:
                     for api_c in captured_api_comments[vid_id]:
-                        api_c["video_title"] = real_video_meta["title"]
-                        api_c["video_url"] = v_url
-                        video_comments.append(api_c)
+                        api_text = api_c.get("text", "").strip()
+                        if api_text and api_text not in seen_text_set:
+                            seen_text_set.add(api_text)
+                            api_c["video_title"] = real_video_meta["title"]
+                            api_c["video_url"] = v_url
+                            video_comments.append(api_c)
 
                 # Guardar video con datos 100% reales
                 final_videos_audit.append({

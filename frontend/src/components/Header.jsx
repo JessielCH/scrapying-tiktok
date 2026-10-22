@@ -11,8 +11,8 @@ export default function Header({ backendStatus }) {
           <ShieldCheck size={24} />
         </div>
         <div>
-          <h1 className="brand-title">Auditoría Demográfica y Psicometría</h1>
-          <p className="brand-subtitle">Plataforma de Estimación Etaria, Calidad de Audiencia y Brand Safety</p>
+          <h1 className="brand-title">Extracción y Análisis de Audiencia</h1>
+          <p className="brand-subtitle">Plataforma de Extracción de Datos, Demografía y Psicometría de TikTok</p>
         </div>
       </div>
 

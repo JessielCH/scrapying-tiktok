@@ -31,20 +31,21 @@ class GeminiRiskSynthesizer:
     """
 
     SYSTEM_PROMPT = """
-Actúa como un Analista Senior Especializado en Psicometría Computacional, Privacidad de Datos y Auditoría de Audiencias.
-Recibirás un bloque de datos JSON conteniendo: las probabilidades generadas por el modelo mDeBERTa-v3 para la inferencia de los niveles de los rasgos del Big Five y de la edad de la base de seguidores; puntuaciones de análisis emocional (RoBERTuito/pysentimiento); métricas de calidad de la audiencia (AQS); e indicadores de contenido.
+Actúa como un Analista Senior Especializado en Psicometría Computacional, Privacidad de Datos y Análisis de Audiencias en Redes Sociales.
+Recibirás un bloque de datos JSON conteniendo: las probabilidades calculadas para la inferencia de los niveles de los rasgos del Big Five y de la edad de la base de seguidores; puntuaciones de análisis emocional; métricas de calidad de la audiencia (AQS); e indicadores de contenido extraído de TikTok.
 
 Objetivo: Tu tarea es sintetizar estos vectores de datos brutos en una conclusión ejecutiva, técnica, pero sumamente fluida y narrativa.
 
 Instrucciones para la Generación:
-1. Inicia vinculando los niveles detectados de Responsabilidad y Estabilidad Emocional con la maduración neurológica normativa para emitir un veredicto definitivo sobre la edad media real predominante en la audiencia, justificando por qué las firmas psicolingüísticas extraídas evidencian esto de forma irrefutable.
-2. Describe las implicaciones de estas clasificaciones respecto a la protección del menor. Menciona cómo este perfil de audiencia se cruza con las vulnerabilidades de ciberacoso y cómo los padres que usen sistemas basados en NLP como Bark se beneficiarían de estas alertas.
-3. Traduce los hallazgos en inteligencia comercial estricta (Brand Safety). ¿Es la audiencia legal y económicamente viable para campañas de productos sensibles?
+1. Inicia vinculando los niveles detectados de Responsabilidad y Estabilidad Emocional con la maduración neurológica normativa para emitir un veredicto definitivo sobre la edad media real predominante en la audiencia, justificando por qué las firmas psicolingüísticas extraídas evidencian esto de forma clara.
+2. Describe las implicaciones de estas clasificaciones respecto a la protección del menor. Menciona cómo este perfil de audiencia se cruza con las dinámicas de redes y cómo los padres que usen sistemas basados en NLP como Bark se beneficiarían de estas alertas.
+3. Traduce los hallazgos en inteligencia comercial estricta (Brand Safety). ¿Es la audiencia viable para campañas de productos sensibles?
 4. Determina un puntaje numérico de 'risk_score' (entero entre 0 y 100) y su etiqueta 'risk_level' ('BAJO', 'MODERADO', 'CRITICO').
 5. Concluye confirmando que el proceso se realizó bajo el cumplimiento íntegro del Principio de Minimización de Datos de la LOPDP y GDPR (empleando hashing SHA-256 y privacidad diferencial).
 
 Restricciones de Estilo:
 - El lenguaje debe ser académico, corporativo y analítico.
+- NUNCA uses la palabra 'auditoría' ni derivados de 'auditar' o 'forense'. Habla siempre de 'extracción de datos', 'análisis psicométrico' o 'métricas de audiencia'.
 - Escribe exclusivamente en tercera persona. Nunca uses listas de viñetas, todo debe presentarse como prosa narrativa cohesionada con fluidez transicional.
 - No especules sobre identidades de individuos particulares, enfatiza el análisis a nivel estadístico macro (cohortes poblacionales).
 - Devuelve única y estrictamente un objeto JSON con la estructura solicitada.
@@ -62,14 +63,14 @@ Restricciones de Estilo:
     def synthesize(self, payload_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Ejecuta la inferencia generativa sobre el payload estructurado.
-        Si la clave de API no está presente, devuelve una evaluación analítica
-        basada en reglas deterministas psicométricas como fallback transparente.
+        Si la clave de API no está presente o el servicio está saturado (503),
+        devuelve una evaluación analítica basada en reglas deterministas psicométricas.
         """
         if self.client is None:
             return self._deterministic_fallback_synthesis(payload_data)
 
         prompt_input = f"""
-Datos Cuantitativos de Auditoría Psicométrica y Demográfica:
+Datos Cuantitativos de Extracción Psicométrica y Demográfica:
 {json.dumps(payload_data, indent=2, ensure_ascii=False)}
 
 Genera la respuesta estrictamente en este formato JSON:
@@ -86,21 +87,28 @@ Genera la respuesta estrictamente en este formato JSON:
 }}
 """
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt_input,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                    temperature=0.2
+        # Reintento con backoff si Gemini devuelve 503 por alta demanda temporal
+        import time
+        for attempt in range(2):
+            try:
+                response = self.client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt_input,
+                    config=types.GenerateContentConfig(
+                        system_instruction=self.SYSTEM_PROMPT,
+                        response_mime_type="application/json",
+                        temperature=0.2
+                    )
                 )
-            )
-            raw_text = response.text.strip()
-            return json.loads(raw_text)
-        except Exception as e:
-            print(f"[!] Aviso en Gemini API ({e}). Utilizando evaluador psicométrico determinista...")
-            return self._deterministic_fallback_synthesis(payload_data)
+                raw_text = response.text.strip()
+                return json.loads(raw_text)
+            except Exception as e:
+                err_str = str(e)
+                if ("503" in err_str or "UNAVAILABLE" in err_str) and attempt == 0:
+                    time.sleep(2.0)
+                    continue
+                print(f"[!] Aviso en Gemini API ({err_str}). Utilizando evaluador psicométrico determinista...")
+                return self._deterministic_fallback_synthesis(payload_data)
 
     def _deterministic_fallback_synthesis(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """

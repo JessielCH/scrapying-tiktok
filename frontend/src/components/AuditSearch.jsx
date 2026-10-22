@@ -5,7 +5,7 @@ export default function AuditSearch({ onAudit, isLoading }) {
   const [url, setUrl] = useState('https://www.tiktok.com/@arigameplays');
   const [sampleSize, setSampleSize] = useState(150);
   const [maxVideos, setMaxVideos] = useState(10);
-  const [headed, setHeaded] = useState(false);
+  const [headed, setHeaded] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authSuccess, setAuthSuccess] = useState(false);
 
@@ -53,8 +53,8 @@ export default function AuditSearch({ onAudit, isLoading }) {
           />
         </div>
 
-        {/* Selector de publicaciones a auditar (hasta 30) */}
-        <div className="select-wrapper-with-icon" title="Cantidad de publicaciones/videos recientes a auditar">
+        {/* Selector de publicaciones a analizar (hasta 30) */}
+        <div className="select-wrapper-with-icon" title="Cantidad de publicaciones/videos recientes a extraer">
           <Film size={15} className="select-inner-icon" />
           <select
             className="sample-select video-count-select"
@@ -62,10 +62,10 @@ export default function AuditSearch({ onAudit, isLoading }) {
             onChange={(e) => setMaxVideos(Number(e.target.value))}
             disabled={isLoading}
           >
-            <option value={5}>Auditar: 5 videos</option>
-            <option value={10}>Auditar: 10 videos (Recomendado)</option>
-            <option value={20}>Auditar: 20 videos</option>
-            <option value={30}>Auditar: 30 videos (Completo)</option>
+            <option value={5}>Extraer: 5 videos</option>
+            <option value={10}>Extraer: 10 videos (Recomendado)</option>
+            <option value={20}>Extraer: 20 videos</option>
+            <option value={30}>Extraer: 30 videos (Completo)</option>
           </select>
         </div>
 
@@ -83,24 +83,24 @@ export default function AuditSearch({ onAudit, isLoading }) {
         </select>
 
         {/* Casilla de navegador visible interactivo */}
-        <label className="headed-toggle-label" title="Abre una ventana de navegador en pantalla por si TikTok solicita resolver un puzzle Captcha manualmente">
+        <label className="headed-toggle-label" title="Abre una ventana de navegador visible para resolver el puzle deslizador de TikTok si la plataforma lo solicita">
           <input
             type="checkbox"
             checked={headed}
             onChange={(e) => setHeaded(e.target.checked)}
             disabled={isLoading}
           />
-          <span className="headed-toggle-text">🖥️ Navegador interactivo</span>
+          <span className="headed-toggle-text">🖥️ Navegador visible (Para puzzle)</span>
         </label>
 
         <button type="submit" className="btn-audit" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
-              <span>Auditando en Vivo...</span>
+              <span>Extrayendo en Vivo...</span>
             </>
           ) : (
-            <span>Iniciar Auditoría Forense</span>
+            <span>Iniciar Extracción de Datos</span>
           )}
         </button>
       </form>

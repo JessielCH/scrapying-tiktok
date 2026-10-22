@@ -6,7 +6,7 @@ export default function LiveProgressTracker({ isRunning }) {
     phase: 'INIT',
     percent: 10,
     message: 'Conectando con TikTok e inicializando sesión...',
-    logs: ['[00:00:01] Iniciando auditoría forense...'],
+    logs: ['[00:00:01] Iniciando extracción de datos...'],
     is_running: true
   });
   const logsEndRef = useRef(null);
@@ -46,7 +46,7 @@ export default function LiveProgressTracker({ isRunning }) {
         <div className="progress-title-wrap">
           <span className="pulse-beacon"></span>
           <Activity size={18} className="progress-icon text-cyan" />
-          <h4 className="progress-title">Telemetría de Auditoría en Tiempo Real</h4>
+          <h4 className="progress-title">Progreso de Extracción en Tiempo Real</h4>
         </div>
         <span className="progress-percentage-pill">{progressData.percent}%</span>
       </div>
@@ -70,7 +70,7 @@ export default function LiveProgressTracker({ isRunning }) {
       <div className="live-terminal-box">
         <div className="terminal-topbar">
           <Terminal size={13} />
-          <span>Consola de Extracción y Auditoría en Vivo (Sin Bloqueos)</span>
+          <span>Consola de Extracción en Vivo</span>
         </div>
         <div className="terminal-logs-scroll">
           {progressData.logs.map((log, i) => (

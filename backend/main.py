@@ -44,14 +44,14 @@ def start_api_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = T
         return
 
     print("\n" + "=" * 68)
-    print(f"[*] Iniciando servidor API de Auditoría en http://{host}:{port}")
+    print(f"[*] Iniciando servidor API de Extracción en http://{host}:{port}")
     print(f"[*] Documentación interactiva Swagger: http://{host}:{port}/docs")
     print("=" * 68 + "\n")
     uvicorn.run("api.app:app", host=host, port=port, reload=reload)
 
 
 def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool = True, headed: bool = False):
-    """Ejecuta el pipeline completo de auditoría y psicometría."""
+    """Ejecuta el pipeline completo de extracción y psicometría."""
     from src.forensic_vault import ForensicVault
     from src.comment_scraper import TikTokCommentScraper
     from src.privacy_dp import AudienceQualityAnalyzer
@@ -59,11 +59,11 @@ def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool
     from src.gemini_synthesizer import GeminiRiskSynthesizer
 
     print("\n" + "=" * 68)
-    print(f"[*] INICIANDO AUDITORÍA INTEGRAL DE SEGURIDAD Y PSICOMETRÍA")
+    print(f"[*] INICIANDO EXTRACCIÓN Y ANÁLISIS DE CONTENIDOS Y PSICOMETRÍA")
     print(f"[*] Objetivo: {url}")
     print("=" * 68)
 
-    # 1. Bóveda Forense
+    # 1. Preservación Multimedia
     vault = ForensicVault(evidence_dir="data/evidence", cookies_txt_path="data/cookies.txt")
     evidence_manifest = None
     if download_evidence and ("/video/" in url or "/photo/" in url):
@@ -73,7 +73,7 @@ def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool
             vid = vid_match.group(1) if vid_match else "unknown"
             evidence_manifest = vault.capture_evidence(video_url=url, video_id=vid)
         except Exception as e:
-            print(f"[!] Error al preservar evidencia forense: {e}")
+            print(f"[!] Aviso al preservar copia del video: {e}")
 
     # 2. Extracción y Anonimización SHA-256 de Comentarios
     comment_scraper = TikTokCommentScraper(cookies_path="data/cookies.json", output_dir="data")
@@ -86,7 +86,7 @@ def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool
     nlp = PsychometricsNLPEngine()
     nlp_results = nlp.analyze_comment_batch(comments)
 
-    # 5. Síntesis Gemini 1.5 Flash
+    # 5. Síntesis Gemini 3.8 Flash
     synthesizer = GeminiRiskSynthesizer()
     payload = {
         "url": url,
@@ -100,7 +100,7 @@ def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool
     ai_verdict = synthesizer.synthesize(payload)
 
     print("\n" + "=" * 68)
-    print("RESULTADOS DE LA AUDITORÍA PSICOMÉTRICA Y BRAND SAFETY")
+    print("RESULTADOS DE LA EXTRACCIÓN PSICOMÉTRICA Y BRAND SAFETY")
     print("=" * 68)
     print(f"Muestra de Comentarios:   {len(comments)} (Anonimizados con SHA-256)")
     print(f"Puntaje AQS (Calidad):    {aqs_data['aqs_score']} / 100")
@@ -116,7 +116,7 @@ def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool
     for trait, val in nlp_results["big_five_scores"].items():
         print(f"  • {trait.replace('_', ' ').capitalize()}: {val}")
     print("\n" + "=" * 68)
-    print("DICTAMEN EJECUTIVO (GEMINI 1.5 FLASH):")
+    print("DICTAMEN EJECUTIVO (GEMINI 3.8 FLASH):")
     print("=" * 68)
     print(ai_verdict.get("conclusion_narrativa_global", ""))
     print("=" * 68 + "\n")
@@ -135,13 +135,13 @@ def run_interactive_menu():
             session_status = "[NO DETECTADA - OBLIGATORIO EXTRAER]"
 
         print("\n" + "=" * 68)
-        print("     SISTEMA DE AUDITORÍA DEMOGRÁFICA Y PSICOMETRÍA (BACKEND)     ")
+        print("     SISTEMA DE EXTRACCIÓN Y ANÁLISIS DEMOGRÁFICO (BACKEND)       ")
         print("=" * 68)
         print(f" Estado de Sesión: {session_status}")
         print("-" * 68)
         print(" [1] Analizar Perfil y Publicaciones (Exportar CSVs y JSON)")
         print(" [2] Extraer / Renovar Cookies de Sesión (Login QR o Invitado)")
-        print(" [3] Auditoría Integral (Forense Inmutable + NLP Big Five + Gemini)")
+        print(" [3] Extracción Integral (Métricas + NLP Big Five + Gemini)")
         print(" [4] Iniciar Servidor API REST (para conectar con el Frontend)")
         print(" [5] Salir")
         print("=" * 68)
@@ -167,7 +167,7 @@ def run_interactive_menu():
             safe_input("\nPresiona Enter para volver...")
 
         elif choice == "3":
-            url = safe_input("\nIngresa la URL del video de TikTok a auditar: ")
+            url = safe_input("\nIngresa la URL del video o perfil de TikTok a analizar: ")
             if url:
                 run_full_audit(url, sample_comments=150, download_evidence=True, headed=False)
             safe_input("\nPresiona Enter para volver...")

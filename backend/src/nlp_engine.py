@@ -218,9 +218,9 @@ class PsychometricsNLPEngine:
         """
         if not comments:
             return {
-                "age_distribution_percent": {"13-17": 20.0, "18-24": 20.0, "25-34": 20.0, "35-44": 20.0, "45+": 20.0},
-                "big_five_scores": {"conscientiousness": 0.5, "social_dominance": 0.5, "emotional_stability": 0.5, "agreeableness": 0.5, "openness": 0.5},
-                "dominant_emotion": "alegría",
+                "age_distribution_percent": {"13-17": 0.0, "18-24": 0.0, "25-34": 0.0, "35-44": 0.0, "45+": 0.0},
+                "big_five_scores": {"conscientiousness": 0.0, "social_dominance": 0.0, "emotional_stability": 0.0, "agreeableness": 0.0, "openness": 0.0},
+                "dominant_emotion": "Sin comentarios registrados",
                 "processed_count": 0,
                 "categorized_comments": [],
                 "big_five_breakdown": {

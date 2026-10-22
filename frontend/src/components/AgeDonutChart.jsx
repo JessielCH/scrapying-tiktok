@@ -66,7 +66,9 @@ export default function AgeDonutChart({ ageDistribution, sampleSize }) {
           <Users size={20} color="#0284c7" />
           Distribución de Edad Real Estimada (Big Five + NLP)
         </h2>
-        <span className="badge badge-tag">Muestra: {sampleSize || 150}</span>
+        <span className="badge badge-tag">
+          {sampleSize > 0 ? `Muestra: ${sampleSize} comentarios` : 'Sin comentarios extraídos'}
+        </span>
       </div>
 
       <div className="donut-container">

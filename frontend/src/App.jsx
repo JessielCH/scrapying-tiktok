@@ -60,8 +60,8 @@ const INITIAL_DEMO_DATA = {
     veredicto_etario: 'El perfil lingüístico exhibe un predominio categórico de la cohorte adolescente (13-17 años: 42.5%), determinado por la marcada presencia de modismos juveniles y reactividad emocional prosódica.',
     implicaciones_parentales: 'Se detecta una asimetría etaria en las dinámicas comunicacionales de los comentarios, configurando una alerta prioritaria para sistemas de supervisión parental basados en procesamiento de lenguaje natural.',
     dictamen_brand_safety: 'La audiencia no califica como legalmente viable para la inyección de pauta publicitaria en productos regulados dirigidos a adultos, requiriendo la exclusión preventiva de inventario publicitario.',
-    executive_conclusion: 'El análisis computacional de la huella lingüística en los comentarios refleja un predominio sustancial de la franja etaria comprendida entre los 13 y 17 años (42.5%). Los niveles moderados de Responsabilidad (0.28) y Estabilidad Emocional (0.35) correlacionan con la impulsividad reactiva del público juvenil conforme a Roberts et al. (2006). Toda la muestra ha sido auditada desglosando cada video con reproductor interactivo y cálculo total agregado.',
-    compliance_certification: 'Auditoría certificada bajo el Principio de Minimización de Datos de la LOPDP (Ecuador Arts. 19 y 21) y GDPR con preservación forense SHA-256 y ε-DP.'
+    executive_conclusion: 'El análisis computacional de la huella lingüística en los comentarios refleja un predominio sustancial de la franja etaria comprendida entre los 13 y 17 años (42.5%). Los niveles moderados de Responsabilidad (0.28) y Estabilidad Emocional (0.35) correlacionan con la impulsividad reactiva del público juvenil conforme a Roberts et al. (2006). Toda la muestra ha sido analizada desglosando cada video con reproductor interactivo y cálculo total agregado.',
+    compliance_certification: 'Extracción certificada bajo el Principio de Minimización de Datos de la LOPDP (Ecuador Arts. 19 y 21) y GDPR con preservación SHA-256 y ε-DP.'
   },
   videos: [
     {
@@ -419,7 +419,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Dictamen Ejecutivo y Conclusiones Forenses */}
+              {/* Dictamen Ejecutivo y Conclusiones del Análisis */}
               <ExecutiveSummary riskAssessment={auditData.risk_assessment} />
             </div>
           )}

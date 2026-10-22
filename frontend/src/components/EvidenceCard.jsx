@@ -11,9 +11,9 @@ export default function EvidenceCard({ target }) {
       <div className="card-header">
         <h2 className="card-title">
           <FileCheck size={20} color="#0284c7" />
-          Evidencia Forense y Clasificación
+          Copia Multimedia y Clasificación
         </h2>
-        <span className="badge badge-tag">Custodia Digital</span>
+        <span className="badge badge-tag">Preservación Digital</span>
       </div>
 
       <div className="evidence-content">
@@ -48,7 +48,7 @@ export default function EvidenceCard({ target }) {
         </div>
 
         <div className="hash-box">
-          <div className="hash-label">Firma Criptográfica SHA-256 (Prueba Inmutable)</div>
+          <div className="hash-label">Firma Criptográfica SHA-256 (Integridad de Datos)</div>
           <code>{evidence_sha256 || 'SHA256_VERIFICATION_ACTIVE_EVID'}</code>
         </div>
 
@@ -56,16 +56,16 @@ export default function EvidenceCard({ target }) {
           href={evidence_video_url || '#'}
           download
           className="btn-download-evidence"
-          title="Descarga la copia inmutable del video con fines de auditoría técnica y pericial"
+          title="Descarga la copia de respaldo del video con firma SHA-256"
           onClick={(e) => {
             if (!evidence_video_url) {
               e.preventDefault();
-              alert('La copia forense se encuentra archivada en el servidor bajo la firma SHA-256 indicada.');
+              alert('El archivo multimedia se encuentra archivado en el servidor bajo la firma SHA-256 indicada.');
             }
           }}
         >
           <Download size={16} />
-          <span>Descargar Copia de Evidencia Forense (.MP4)</span>
+          <span>Descargar Video Multimedia (.MP4)</span>
         </a>
       </div>
     </div>
