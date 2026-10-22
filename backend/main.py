@@ -35,7 +35,7 @@ def safe_input(prompt: str, default: str = "") -> str:
         return default
 
 
-def start_api_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = False):
+def start_api_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = True):
     """Inicia el servidor REST de FastAPI con uvicorn."""
     try:
         import uvicorn

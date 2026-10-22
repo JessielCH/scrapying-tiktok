@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 
 export default function AuditSearch({ onAudit, isLoading }) {
-  const [url, setUrl] = useState('https://www.tiktok.com/@alexarmando15/video/7391823912');
+  const [url, setUrl] = useState('https://www.tiktok.com/@arigameplays');
   const [sampleSize, setSampleSize] = useState(150);
 
   const handleSubmit = (e) => {
@@ -12,6 +12,12 @@ export default function AuditSearch({ onAudit, isLoading }) {
     }
   };
 
+  const QUICK_PROFILES = [
+    { label: '@arigameplays', url: 'https://www.tiktok.com/@arigameplays' },
+    { label: '@khaby.lame', url: 'https://www.tiktok.com/@khaby.lame' },
+    { label: '@mrbeast', url: 'https://www.tiktok.com/@mrbeast' }
+  ];
+
   return (
     <div className="search-card">
       <form className="search-form" onSubmit={handleSubmit}>
@@ -20,7 +26,7 @@ export default function AuditSearch({ onAudit, isLoading }) {
           <input
             type="text"
             className="clinical-input"
-            placeholder="Ingresa la URL del video o perfil de TikTok a auditar (ej. https://www.tiktok.com/@creador/video/...)"
+            placeholder="Pega la URL de un perfil o video de TikTok (ej. https://www.tiktok.com/@creador)"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading}
@@ -44,13 +50,28 @@ export default function AuditSearch({ onAudit, isLoading }) {
           {isLoading ? (
             <>
               <Loader2 size={18} className="animate-spin" />
-              <span>Procesando NLP...</span>
+              <span>Auditando en Vivo...</span>
             </>
           ) : (
-            <span>Auditar Objetivo</span>
+            <span>Iniciar Auditoría Forense</span>
           )}
         </button>
       </form>
+
+      <div className="quick-suggestions-row">
+        <span className="quick-label">Objetivos Rápidos de Prueba:</span>
+        {QUICK_PROFILES.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            className="quick-chip-btn"
+            onClick={() => setUrl(p.url)}
+            disabled={isLoading}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

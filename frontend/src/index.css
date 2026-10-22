@@ -218,6 +218,40 @@ body {
   cursor: not-allowed;
 }
 
+.quick-suggestions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.quick-label {
+  font-size: 0.775rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.quick-chip-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #0284c7;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-chip-btn:hover {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  transform: translateY(-1px);
+}
+
 /* Grid Layout for Metrics */
 .dashboard-grid {
   display: grid;

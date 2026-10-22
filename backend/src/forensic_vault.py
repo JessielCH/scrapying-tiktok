@@ -18,6 +18,7 @@ except ImportError:
     yt_dlp = None
 
 from .utils import ensure_output_dir
+from .anti_detect import DEFAULT_USER_AGENT
 
 
 class ForensicVault:
@@ -87,6 +88,11 @@ class ForensicVault:
             "quiet": True,
             "no_warnings": True,
             "overwrites": True,
+            "http_headers": {
+                "User-Agent": DEFAULT_USER_AGENT,
+                "Referer": "https://www.tiktok.com/",
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8"
+            }
         }
 
         if self.cookies_txt_path and self.cookies_txt_path.exists():
