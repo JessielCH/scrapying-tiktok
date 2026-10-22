@@ -50,11 +50,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Sensitive Data, Cookies, Sessions & Downloads
-data/*
-!data/.gitkeep
-data/downloads/*
-!data/downloads/.gitkeep
-
 backend/data/*
 !backend/data/.gitkeep
 !backend/data/evidence/
