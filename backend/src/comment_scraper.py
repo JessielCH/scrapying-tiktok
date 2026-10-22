@@ -58,13 +58,91 @@ class TikTokCommentScraper:
             return "ANON_UNKNOWN"
         return hashlib.sha256(raw_id.strip().encode("utf-8")).hexdigest()
 
+    async def _wait_for_captcha_if_present(
+        self,
+        page,
+        progress_callback: Optional[Callable[[str, int, str], None]] = None,
+        max_wait: int = 180
+    ) -> bool:
+        """
+        Detecta si TikTok presentó un desafío o captcha de rompecabezas
+        y espera pacientemente hasta `max_wait` segundos (3 minutos) a que el usuario lo resuelva.
+        """
+        check_script = """() => {
+            const selectors = [
+                '#tiktok-verify-ele',
+                '#captcha-verify-image',
+                '[class*="captcha-verify"]',
+                '[class*="secsdk-captcha"]',
+                '#captcha_container',
+                '.captcha_verify_container',
+                'div[id*="verify-bar"]',
+                'iframe[src*="captcha"]',
+                '.secsdk-captcha-drag-icon'
+            ];
+            for (const s of selectors) {
+                const el = document.querySelector(s);
+                if (el && el.offsetParent !== null) return true;
+            }
+            const txt = document.body ? document.body.innerText : '';
+            return txt.includes('Verifica para continuar') ||
+                   txt.includes('Verify to continue') ||
+                   txt.includes('Arrastra el control deslizante') ||
+                   txt.includes('Drag the slider');
+        }"""
+
+        has_captcha = False
+        try:
+            has_captcha = await page.evaluate(check_script)
+        except Exception:
+            pass
+
+        if has_captcha:
+            msg = f"⚠️ [CAPTCHA DETECTADO] Resuelve el rompecabezas en la ventana del navegador (tienes {max_wait}s)..."
+            print(f"\n{msg}\n")
+            if progress_callback:
+                progress_callback("CAPTCHA_WAIT", 25, msg)
+
+            start = time.time()
+            last_alert = start
+            while time.time() - start < max_wait:
+                await asyncio.sleep(2.0)
+                still_captcha = False
+                try:
+                    still_captcha = await page.evaluate(check_script)
+                except Exception:
+                    pass
+
+                if not still_captcha:
+                    success_msg = "✅ [CAPTCHA RESUELTO] ¡Verificación completada exitosamente! Continuando extracción..."
+                    print(f"\n{success_msg}\n")
+                    if progress_callback:
+                        progress_callback("CAPTCHA_SOLVED", 28, success_msg)
+                    await asyncio.sleep(2.5)
+                    return True
+
+                now = time.time()
+                if now - last_alert >= 15:
+                    last_alert = now
+                    remaining = int(max_wait - (now - start))
+                    if progress_callback:
+                        progress_callback(
+                            "CAPTCHA_WAIT",
+                            25,
+                            f"⏳ Esperando resolución del rompecabezas en la ventana... ({remaining}s restantes)"
+                        )
+
+            print("[!] Tiempo límite para resolver el captcha alcanzado.")
+            return False
+        return True
+
     async def audit_creator_multi_videos_async(
         self,
         target_url: str,
         max_videos: int = 10,
         comments_per_video: int = 30,
         headed: bool = False,
-        timeout: int = 35,
+        timeout: int = 180,
         progress_callback: Optional[Callable[[str, int, str], None]] = None
     ) -> Dict[str, Any]:
         """
@@ -86,7 +164,7 @@ class TikTokCommentScraper:
             clean_target = f"https://www.tiktok.com/{clean_user}"
 
         if progress_callback:
-            progress_callback("INIT", 8, f"Iniciando navegador Playwright para {clean_target}...")
+            progress_callback("INIT", 8, f"Iniciando navegador Playwright ({'Visual / Headed' if headed else 'Headless'})...")
 
         is_direct_video = "/video/" in clean_target or "/photo/" in clean_target
         creator_handle = ""
@@ -163,11 +241,22 @@ class TikTokCommentScraper:
 
             # 1. Navegar al objetivo inicial y extraer metadatos de perfil
             if progress_callback:
-                progress_callback("EXTRACTING_PROFILE", 18, f"Accediendo a la URL y extrayendo perfil público...")
+                progress_callback("EXTRACTING_PROFILE", 18, f"Accediendo a {clean_target}...")
 
             try:
-                await page.goto(clean_target, timeout=timeout * 1000, wait_until="domcontentloaded")
+                await page.goto(clean_target, timeout=60000, wait_until="domcontentloaded")
+                # Esperar hasta 180s si hay captcha
+                await self._wait_for_captcha_if_present(page, progress_callback, max_wait=180)
                 await asyncio.sleep(2.5)
+
+                # Cerrar modal de login si aparece
+                try:
+                    modal_close = await page.query_selector('[data-e2e="modal-close-icon"], button[aria-label="Cerrar"], [class*="ModalClose"]')
+                    if modal_close:
+                        await modal_close.click()
+                        await asyncio.sleep(1.0)
+                except Exception:
+                    pass
 
                 creator_profile_data = await page.evaluate("""() => {
                     let nickname = '';
@@ -269,40 +358,62 @@ class TikTokCommentScraper:
                     "title": "Publicación seleccionada"
                 })
             else:
-                # Perfil: extraer los videos visibles
+                # Perfil: extraer los videos visibles con tolerancia de tiempo para captcha
                 try:
-                    for _ in range(3):
-                        await page.mouse.wheel(0, 1000)
-                        await asyncio.sleep(1.2)
-
-                    links = await page.evaluate("""() => {
-                        return Array.from(document.querySelectorAll('a[href*="/video/"]')).map(a => ({
-                            url: a.href,
-                            title: a.innerText ? a.innerText.slice(0, 80) : ''
-                        }));
-                    }""")
+                    start_disc = time.time()
                     seen_urls = set()
-                    for l in links:
-                        u = l["url"]
-                        v_match = re.search(r"/video/(\d+)", u)
-                        vid = v_match.group(1) if v_match else ""
-                        if vid and u not in seen_urls:
-                            seen_urls.add(u)
-                            discovered_video_urls.append({
-                                "video_id": vid,
-                                "url": u,
-                                "title": l["title"] or f"Publicación {vid}"
-                            })
-                            if len(discovered_video_urls) >= max_videos:
-                                break
+
+                    # Bucle paciente de hasta 120 segundos para que el usuario pueda resolver captcha
+                    while time.time() - start_disc < 120:
+                        # Si hay un captcha activo, esperar activamente hasta 180s a que se resuelva
+                        await self._wait_for_captcha_if_present(page, progress_callback, max_wait=180)
+
+                        # Cerrar modal si estorba
+                        try:
+                            modal_close = await page.query_selector('[data-e2e="modal-close-icon"], button[aria-label="Cerrar"], [class*="ModalClose"]')
+                            if modal_close:
+                                await modal_close.click()
+                                await asyncio.sleep(1.0)
+                        except Exception:
+                            pass
+
+                        for _ in range(3):
+                            await page.mouse.wheel(0, 1000)
+                            await asyncio.sleep(1.0)
+
+                        links = await page.evaluate("""() => {
+                            return Array.from(document.querySelectorAll('a[href*="/video/"]')).map(a => ({
+                                url: a.href,
+                                title: a.innerText ? a.innerText.slice(0, 80) : ''
+                            }));
+                        }""")
+
+                        for l in links:
+                            u = l["url"]
+                            v_match = re.search(r"/video/(\d+)", u)
+                            vid = v_match.group(1) if v_match else ""
+                            if vid and u not in seen_urls:
+                                seen_urls.add(u)
+                                discovered_video_urls.append({
+                                    "video_id": vid,
+                                    "url": u,
+                                    "title": l["title"] or f"Publicación {vid}"
+                                })
+                                if len(discovered_video_urls) >= max_videos:
+                                    break
+
+                        # Si ya tenemos suficientes videos o pasaron al menos 8 segundos con videos encontrados
+                        if len(discovered_video_urls) >= max_videos or (discovered_video_urls and time.time() - start_disc > 8):
+                            break
+
+                        await asyncio.sleep(2.5)
                 except Exception as e_disc:
                     print(f"[!] Aviso al descubrir videos: {e_disc}")
 
             if not discovered_video_urls:
                 raise RuntimeError(
-                    "No se pudieron encontrar publicaciones visibles en el perfil de TikTok. "
-                    "TikTok puede estar mostrando un captcha de rompecabezas. "
-                    "Activa la casilla 'Modo Visual (Headed)' o renueva las cookies de sesión con Login QR."
+                    "No se pudieron encontrar publicaciones visibles en el perfil de TikTok tras esperar la resolución del captcha. "
+                    "Verifica que la ventana no tenga bloqueos pendientes o renueva la sesión mediante Login QR."
                 )
 
             # 3. Extraer comentarios y métricas reales de cada video individual
@@ -346,9 +457,10 @@ class TikTokCommentScraper:
                     "cover_url": f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg"
                 }
 
-                # Navegar al video para extraer SSR y comentarios
+                # Navegar al video para extraer SSR y comentarios con espera de captcha
                 try:
-                    await page.goto(v_url, timeout=22000, wait_until="domcontentloaded")
+                    await page.goto(v_url, timeout=45000, wait_until="domcontentloaded")
+                    await self._wait_for_captcha_if_present(page, progress_callback, max_wait=180)
                     await asyncio.sleep(2.5)
 
                     # Extraer metadatos 100% reales de SSR

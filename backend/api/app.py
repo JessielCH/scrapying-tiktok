@@ -109,6 +109,30 @@ def health_check():
     }
 
 
+@app.post("/api/v1/session/login-qr")
+async def trigger_qr_login():
+    """Abre ventana de Chrome interactiva para escanear el código QR de TikTok (tiempo disponible: 5 minutos)."""
+    def run_login():
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        return cookie_manager.extract_login_cookies(timeout=300)
+
+    try:
+        set_progress("AUTH_QR", 10, "Iniciando ventana de navegador para inicio de sesión con código QR...")
+        await asyncio.to_thread(run_login)
+        has_auth = cookie_manager.is_authenticated()
+        msg = "¡Sesión autenticada guardada con éxito!" if has_auth else "No se detectó inicio de sesión"
+        set_progress("AUTH_DONE" if has_auth else "IDLE", 100 if has_auth else 0, msg)
+        return {
+            "success": has_auth,
+            "message": msg,
+            "is_authenticated": has_auth
+        }
+    except Exception as e:
+        set_progress("ERROR", 0, f"Error en login QR: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/audit/progress", response_model=AuditProgress)
 def get_audit_progress():
     """Retorna la telemetría del avance en tiempo real para mantener el UI activo."""
@@ -170,11 +194,18 @@ async def perform_audit(request: AuditRequest):
                 max_videos=request.max_videos,
                 comments_per_video=max(10, request.sample_comments // max(1, request.max_videos)),
                 headed=request.headed_browser,
+                timeout=180,
                 progress_callback=set_progress
             )
         )
 
-    scrape_results = await asyncio.to_thread(run_multi_scrape)
+    try:
+        scrape_results = await asyncio.to_thread(run_multi_scrape)
+    except Exception as e:
+        AUDIT_PROGRESS_STATE["is_running"] = False
+        set_progress("ERROR", 0, f"Error de extracción: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     creator_prof_data = scrape_results.get("creator_profile", {})
     raw_videos = scrape_results.get("videos", [])
     all_raw_comments = scrape_results.get("all_comments", [])

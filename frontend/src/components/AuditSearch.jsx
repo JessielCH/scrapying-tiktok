@@ -6,6 +6,23 @@ export default function AuditSearch({ onAudit, isLoading }) {
   const [sampleSize, setSampleSize] = useState(150);
   const [maxVideos, setMaxVideos] = useState(10);
   const [headed, setHeaded] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState(false);
+
+  const handleTriggerQR = async () => {
+    setIsAuthenticating(true);
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/session/login-qr', { method: 'POST' });
+      const data = await res.json();
+      if (data.is_authenticated) {
+        setAuthSuccess(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -88,19 +105,54 @@ export default function AuditSearch({ onAudit, isLoading }) {
         </button>
       </form>
 
-      <div className="quick-suggestions-row">
-        <span className="quick-label">Objetivos Rápidos de Prueba:</span>
-        {QUICK_PROFILES.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            className="quick-chip-btn"
-            onClick={() => setUrl(p.url)}
-            disabled={isLoading}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="quick-suggestions-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <span className="quick-label">Objetivos Rápidos:</span>
+          {QUICK_PROFILES.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className="quick-chip-btn"
+              onClick={() => setUrl(p.url)}
+              disabled={isLoading}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={`btn-qr-auth ${authSuccess ? 'auth-success' : ''}`}
+          onClick={handleTriggerQR}
+          disabled={isLoading || isAuthenticating}
+          title="Abre una ventana con código QR para vincular tu cuenta de TikTok (tiempo disponible: 5 minutos para escanear y resolver sin prisa)"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.35rem 0.8rem',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            borderRadius: '0.5rem',
+            background: authSuccess ? 'rgba(16, 185, 129, 0.15)' : 'rgba(254, 44, 85, 0.12)',
+            color: authSuccess ? '#10b981' : '#fe2c55',
+            border: authSuccess ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(254, 44, 85, 0.3)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {isAuthenticating ? (
+            <>
+              <Loader2 size={13} className="animate-spin" />
+              <span>Esperando QR (5 min)...</span>
+            </>
+          ) : authSuccess ? (
+            <span>✅ Sesión Conectada</span>
+          ) : (
+            <span>🔑 Conectar Sesión TikTok (Login QR)</span>
+          )}
+        </button>
       </div>
     </div>
   );
