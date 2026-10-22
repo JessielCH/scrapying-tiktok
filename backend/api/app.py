@@ -56,7 +56,7 @@ app.add_middleware(
 )
 
 # Inicialización de dependencias y servicios
-DATA_DIR = Path(os.getenv("DATA_DIR", "data"))
+DATA_DIR = Path(os.getenv("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
 EVIDENCE_DIR = DATA_DIR / "evidence"
 REPORTS_DIR = DATA_DIR / "reports"
 

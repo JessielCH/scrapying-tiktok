@@ -30,8 +30,14 @@ class TikTokCommentScraper:
     """
 
     def __init__(self, cookies_path: Optional[str] = "data/cookies.json", output_dir: str = "data"):
-        self.cookies_path = Path(cookies_path) if cookies_path else None
-        self.output_dir = Path(output_dir)
+        backend_root = Path(__file__).resolve().parent.parent
+        if cookies_path:
+            cp = Path(cookies_path)
+            self.cookies_path = cp if cp.is_absolute() else backend_root / cp
+        else:
+            self.cookies_path = None
+        od = Path(output_dir)
+        self.output_dir = od if od.is_absolute() else backend_root / od
         ensure_output_dir(self.output_dir)
 
     def _check_dependencies(self):

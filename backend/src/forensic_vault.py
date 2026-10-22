@@ -28,8 +28,14 @@ class ForensicVault:
     """
 
     def __init__(self, evidence_dir: str = "data/evidence", cookies_txt_path: Optional[str] = "data/cookies.txt"):
-        self.evidence_dir = Path(evidence_dir)
-        self.cookies_txt_path = Path(cookies_txt_path) if cookies_txt_path else None
+        backend_root = Path(__file__).resolve().parent.parent
+        ed = Path(evidence_dir)
+        self.evidence_dir = ed if ed.is_absolute() else backend_root / ed
+        if cookies_txt_path:
+            ct = Path(cookies_txt_path)
+            self.cookies_txt_path = ct if ct.is_absolute() else backend_root / ct
+        else:
+            self.cookies_txt_path = None
         ensure_output_dir(self.evidence_dir)
 
     def _check_dependencies(self):

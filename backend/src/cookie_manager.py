@@ -27,7 +27,12 @@ class TikTokCookieManager:
     """
 
     def __init__(self, output_dir: str = "data"):
-        self.output_dir = Path(output_dir)
+        out = Path(output_dir)
+        if not out.is_absolute():
+            backend_root = Path(__file__).resolve().parent.parent
+            self.output_dir = backend_root / out
+        else:
+            self.output_dir = out
         ensure_output_dir(self.output_dir)
 
     def _check_playwright(self):
@@ -57,12 +62,19 @@ class TikTokCookieManager:
             await context.add_init_script(get_stealth_init_script())
             page = await context.new_page()
 
-            print("[*] Navegando a https://www.tiktok.com/ ...")
+            print("[*] Navegando a https://www.tiktok.com/explore ...")
             try:
-                await page.goto("https://www.tiktok.com/", wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(4)
+                await page.goto("https://www.tiktok.com/explore", wait_until="commit", timeout=30000)
             except Exception as e:
                 print(f"[!] Aviso durante la navegación: {e}")
+
+            # Esperar activamente a que el WAF y el SDK de seguridad asignen ttwid
+            print("[*] Esperando emisión de la cookie de sesión pública (ttwid)...")
+            for _ in range(12):
+                await asyncio.sleep(1)
+                cookies = await context.cookies()
+                if any(c["name"] == "ttwid" for c in cookies):
+                    break
 
             cookies = await context.cookies()
             storage_state = await context.storage_state()
