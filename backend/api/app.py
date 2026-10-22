@@ -15,7 +15,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from .schemas import AuditRequest, AuditResponse, TargetMetadata, DemographicsReport, RiskAssessmentReport
+from .schemas import (
+    AuditRequest, AuditResponse, TargetMetadata, DemographicsReport,
+    RiskAssessmentReport, CreatorProfile, CategorizedComment
+)
 
 import sys
 from pathlib import Path
@@ -161,6 +164,24 @@ async def perform_audit(request: AuditRequest):
     }
     ai_verdict = gemini_synthesizer.synthesize(synthesis_payload)
 
+    # 6. Extracción de Metadatos de Perfil del Creador
+    creator_prof_data = scraper.last_creator_profile or {}
+    creator_profile = CreatorProfile(
+        handle=creator_prof_data.get("handle") or creator,
+        nickname=creator_prof_data.get("nickname") or creator.replace("@", ""),
+        bio=creator_prof_data.get("bio") or "Perfil público en la plataforma TikTok.",
+        avatar_url=creator_prof_data.get("avatar_url") or "",
+        verified=bool(creator_prof_data.get("verified", False)),
+        followers_count=creator_prof_data.get("followers_count") or None,
+        likes_count=creator_prof_data.get("likes_count") or None
+    )
+
+    # 7. Muestra de Comentarios Categorizada por Big Five
+    comments_sample = [
+        CategorizedComment(**c) for c in nlp_results.get("categorized_comments", [])
+    ]
+    big_five_breakdown = nlp_results.get("big_five_breakdown", {})
+
     # Armado del Contrato de Respuesta
     response_payload = AuditResponse(
         success=True,
@@ -173,6 +194,7 @@ async def perform_audit(request: AuditRequest):
             evidence_sha256=evidence_sha256,
             timestamp_utc=timestamp_utc
         ),
+        creator_profile=creator_profile,
         demographics=DemographicsReport(
             sample_size=len(comments),
             age_distribution_percent=nlp_results["age_distribution_percent"],
@@ -192,6 +214,8 @@ async def perform_audit(request: AuditRequest):
             executive_conclusion=ai_verdict.get("conclusion_narrativa_global", ""),
             compliance_certification=ai_verdict.get("garantia_legal_lopdp", "Procesado conforme a LOPDP Arts. 19 y 21 con SHA-256 y ε-DP.")
         ),
+        comments_sample=comments_sample,
+        big_five_breakdown=big_five_breakdown,
         raw_anonymized_comments_count=len(comments)
     )
 

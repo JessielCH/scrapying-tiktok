@@ -47,10 +47,37 @@ class RiskAssessmentReport(BaseModel):
     compliance_certification: str
 
 
+class CreatorProfile(BaseModel):
+    """Perfil público y metadatos del creador auditado."""
+    handle: str
+    nickname: str
+    bio: str
+    avatar_url: Optional[str] = None
+    verified: bool = False
+    followers_count: Optional[str] = None
+    likes_count: Optional[str] = None
+
+
+class CategorizedComment(BaseModel):
+    """Comentario individual anonimizado categorizado bajo el modelo Big Five."""
+    comment_id: str
+    author_hash: str
+    text: str
+    likes: int = 0
+    primary_trait: str
+    trait_key: str
+    trait_icon: str
+    explanation: str
+    emotion: str
+
+
 class AuditResponse(BaseModel):
     """Respuesta unificada de auditoría técnica devuelta al Frontend."""
     success: bool
     target: TargetMetadata
+    creator_profile: Optional[CreatorProfile] = None
     demographics: DemographicsReport
     risk_assessment: RiskAssessmentReport
+    comments_sample: List[CategorizedComment] = []
+    big_five_breakdown: Dict[str, int] = {}
     raw_anonymized_comments_count: int

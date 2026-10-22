@@ -39,6 +39,7 @@ class TikTokCommentScraper:
         od = Path(output_dir)
         self.output_dir = od if od.is_absolute() else backend_root / od
         ensure_output_dir(self.output_dir)
+        self.last_creator_profile: Dict[str, Any] = {}
 
     def _check_dependencies(self):
         if async_playwright is None:
@@ -141,15 +142,89 @@ class TikTokCommentScraper:
 
             page.on("response", handle_comment_response)
 
+            profile_meta: Dict[str, Any] = {}
+
+            async def extract_profile_metadata() -> Dict[str, Any]:
+                try:
+                    return await page.evaluate("""() => {
+                        let nickname = '';
+                        let uniqueId = '';
+                        let bio = '';
+                        let avatarUrl = '';
+                        let verified = false;
+                        let followers = '';
+                        let likes = '';
+
+                        const ssrEl = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                        if (ssrEl) {
+                            try {
+                                const data = JSON.parse(ssrEl.innerText);
+                                const scope = data['__DEFAULT_SCOPE__'] || {};
+                                const userDetail = scope['webapp.user-detail'] || {};
+                                const userInfo = userDetail['userInfo'] || {};
+                                const u = userInfo['user'] || {};
+                                const s = userInfo['stats'] || {};
+
+                                const videoDetail = scope['webapp.video-detail'] || {};
+                                const itemStruct = (videoDetail['itemInfo'] || {})['itemStruct'] || {};
+                                const author = itemStruct['author'] || {};
+                                const authorStats = itemStruct['authorStats'] || {};
+
+                                const targetUser = Object.keys(u).length > 0 ? u : author;
+                                const targetStats = Object.keys(s).length > 0 ? s : authorStats;
+
+                                if (targetUser && (targetUser.uniqueId || targetUser.nickname)) {
+                                    uniqueId = targetUser.uniqueId || '';
+                                    nickname = targetUser.nickname || '';
+                                    bio = targetUser.signature || '';
+                                    avatarUrl = targetUser.avatarLarger || targetUser.avatarMedium || targetUser.avatarThumb || '';
+                                    verified = Boolean(targetUser.verified);
+                                }
+                                if (targetStats) {
+                                    followers = String(targetStats.followerCount || '');
+                                    likes = String(targetStats.heartCount || '');
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (!nickname) {
+                            const titleEl = document.querySelector('[data-e2e="user-title"], [data-e2e="browse-username"], h1[data-e2e="user-title"]');
+                            if (titleEl) nickname = titleEl.innerText.trim();
+                        }
+                        if (!uniqueId) {
+                            const subEl = document.querySelector('[data-e2e="user-subtitle"]');
+                            if (subEl) uniqueId = subEl.innerText.trim().replace(/^@/, '');
+                        }
+                        if (!bio) {
+                            const bioEl = document.querySelector('[data-e2e="user-bio"], [class*="UserBio"]');
+                            if (bioEl) bio = bioEl.innerText.trim();
+                        }
+                        if (!avatarUrl) {
+                            const imgEl = document.querySelector('[data-e2e="user-avatar"] img, [data-e2e="browse-user-avatar"] img, [class*="Avatar"] img');
+                            if (imgEl && imgEl.src) avatarUrl = imgEl.src;
+                        }
+                        if (!followers) {
+                            const fEl = document.querySelector('[data-e2e="followers-count"]');
+                            if (fEl) followers = fEl.innerText.trim();
+                        }
+                        if (!likes) {
+                            const lEl = document.querySelector('[data-e2e="likes-count"]');
+                            if (lEl) likes = lEl.innerText.trim();
+                        }
+
+                        return { nickname, uniqueId, bio, avatarUrl, verified, followers, likes };
+                    }""")
+                except Exception:
+                    return {}
+
             try:
                 await page.goto(post_url, timeout=timeout * 1000, wait_until="domcontentloaded")
                 await asyncio.sleep(3)
 
-                # Si el usuario ingresó la URL de un perfil (ej. @arigameplays),
-                # navegar automáticamente al video más reciente para auditar los comentarios
                 is_profile = ("/@" in post_url or "tiktok.com/@" in post_url) and ("/video/" not in post_url and "/photo/" not in post_url)
                 if is_profile:
-                    print(f"[*] URL de perfil detectada. Localizando publicación pública más reciente...")
+                    profile_meta = await extract_profile_metadata()
+                    print(f"[*] URL de perfil detectada. Perfil: {profile_meta.get('nickname')} (@{profile_meta.get('uniqueId')})")
                     try:
                         await page.wait_for_selector('a[href*="/video/"]', timeout=8000)
                         video_link = await page.query_selector('a[href*="/video/"]')
@@ -162,6 +237,8 @@ class TikTokCommentScraper:
                                 await asyncio.sleep(3)
                     except Exception as e_prof:
                         print(f"[!] Aviso al buscar videos en el perfil: {e_prof}")
+                else:
+                    profile_meta = await extract_profile_metadata()
             except Exception as e:
                 print(f"[!] Aviso al navegar a la publicación: {e}")
 
@@ -201,6 +278,26 @@ class TikTokCommentScraper:
                         "reply_count": 0,
                         "create_time": 0
                     })
+
+            if not profile_meta or not profile_meta.get("nickname"):
+                fallback_meta = await extract_profile_metadata()
+                if fallback_meta:
+                    profile_meta.update({k: v for k, v in fallback_meta.items() if v})
+
+            raw_uid = profile_meta.get("uniqueId") or ""
+            if not raw_uid:
+                match = re.search(r"@([a-zA-Z0-9_.-]+)", post_url)
+                raw_uid = match.group(1) if match else "creador_tiktok"
+
+            self.last_creator_profile = {
+                "handle": f"@{raw_uid}" if not raw_uid.startswith("@") else raw_uid,
+                "nickname": profile_meta.get("nickname") or raw_uid,
+                "bio": profile_meta.get("bio") or "Perfil público verificado en la plataforma TikTok.",
+                "avatar_url": profile_meta.get("avatarUrl") or "",
+                "verified": bool(profile_meta.get("verified", False)),
+                "followers_count": profile_meta.get("followers") or "",
+                "likes_count": profile_meta.get("likes") or ""
+            }
 
             await browser.close()
 

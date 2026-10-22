@@ -91,6 +91,121 @@ class PsychometricsNLPEngine:
                 self._emotion_analyzer = None
         return self._emotion_analyzer
 
+    @staticmethod
+    def classify_comment_big_five(text: str) -> Dict[str, Any]:
+        """
+        Clasifica un comentario individual en una de las 5 dimensiones del Big Five
+        según el marco psicométrico de Roberts et al. (2006) y Soto et al. (2011).
+        """
+        t = text.lower()
+        
+        # 1. Apertura a la Experiencia (Creatividad, arte, ideas, curiosidad intelectual)
+        openness_keywords = [
+            "arte", "creativ", "increible", "increíble", "idea", "musica", "música",
+            "estilo", "perspectiva", "profundo", "pensar", "interesante", "aprender",
+            "descubrir", "viaje", "futuro", "filosof", "obra", "teoria", "teoría",
+            "curioso", "magia", "universo", "mente", "¿por qué", "¿cómo", "¿donde",
+            "donde conseguiste", "genio", "inspirador", "obra de arte", "elegante"
+        ]
+        
+        # 2. Responsabilidad / Conciencia (Estructura, consejos, tutoriales, disciplina, orden)
+        conscientiousness_keywords = [
+            "consejo", "tutorial", "disciplina", "paso a paso", "orden", "meta",
+            "objetivo", "funciona", "metodo", "método", "logro", "rutina", "practica",
+            "práctica", "estudio", "trabajo", "esfuerzo", "dato", "informacion", "información",
+            "exacto", "atencion", "atención", "cuidado", "organizad", "horario", "regla"
+        ]
+        
+        # 3. Extraversión / Dominancia Social (Sociabilidad, humor, risas, fiesta, energía)
+        extraversion_keywords = [
+            "jaja", "jeje", "xd", "lmao", "fiesta", "bailar", "amigo", "amiga",
+            "genial", "bro", "pana", "crack", "rey", "reina", "fuego", "top", "sape",
+            "epico", "épico", "literal", "weon", "wey", "vamos", "locura", "pov", "god"
+        ]
+        
+        # 4. Amabilidad (Empatía, elogios, calidez, gratitud, afecto, bendiciones)
+        agreeableness_keywords = [
+            "gracias", "te quiero", "te amo", "hermosa", "hermoso", "lindo", "linda",
+            "bendicion", "bendiciones", "apoyo", "orgullo", "abrazo", "tierno", "tierna",
+            "humild", "corazon", "corazón", "felicidades", "solidaridad", "amable", "paz",
+            "respeto", "cuenta con", "guapa", "guapo", "preciosa", "precioso", "dios te bendiga"
+        ]
+        
+        # 5. Neuroticismo / Reactividad Emocional (Vulnerabilidad, desahogo, ansiedad, tristeza, tensión)
+        neuroticism_keywords = [
+            "ansiedad", "miedo", "estres", "estrés", "llorar", "lloro", "triste",
+            "preocup", "pena", "rabia", "frustra", "dolor", "no puedo", "ayuda",
+            "insegur", "depre", "dificil", "difícil", "solx", "llorando", "vacio", "vacío"
+        ]
+        
+        emoji_openness = ["✨", "🎨", "🌌", "💡", "🧠", "🔮", "🪄"]
+        emoji_extraversion = ["🔥", "🎉", "🤣", "😂", "🕺", "💃", "🥳", "⚡", "😎"]
+        emoji_agreeableness = ["❤️", "💖", "🥰", "😍", "🙏", "🥺", "🌸", "🤍", "💐"]
+        emoji_neuroticism = ["😭", "💔", "😢", "😩", "😞", "😰", "😿"]
+
+        scores = {
+            "openness": sum(2.0 for k in openness_keywords if k in t) + sum(1.5 for e in emoji_openness if e in text),
+            "conscientiousness": sum(2.0 for k in conscientiousness_keywords if k in t),
+            "extraversion": sum(2.0 for k in extraversion_keywords if k in t) + sum(1.5 for e in emoji_extraversion if e in text),
+            "agreeableness": sum(2.0 for k in agreeableness_keywords if k in t) + sum(1.5 for e in emoji_agreeableness if e in text),
+            "neuroticism": sum(2.5 for k in neuroticism_keywords if k in t) + sum(2.0 for e in emoji_neuroticism if e in text)
+        }
+
+        if "!" in text or "¡" in text:
+            scores["extraversion"] += 0.8
+        if "jaja" in t or "xd" in t:
+            scores["extraversion"] += 2.0
+
+        max_trait = max(scores, key=scores.get)
+        if scores[max_trait] == 0:
+            words = t.split()
+            if len(words) <= 3:
+                max_trait = "extraversion" if any(c.isupper() for c in text) else "agreeableness"
+            elif len(words) >= 7:
+                max_trait = "openness"
+            else:
+                max_trait = "agreeableness"
+
+        trait_map = {
+            "openness": {
+                "primary_trait": "Apertura a la Experiencia",
+                "trait_key": "openness",
+                "trait_icon": "🌟",
+                "explanation": "Refleja curiosidad intelectual, aprecio estético o interés en ideas y conceptos creativos.",
+                "emotion": "Sorpresa"
+            },
+            "conscientiousness": {
+                "primary_trait": "Responsabilidad",
+                "trait_key": "conscientiousness",
+                "trait_icon": "🎯",
+                "explanation": "Refleja pensamiento analítico, consejos prácticos, orden o disciplina estructurada.",
+                "emotion": "Reflexión"
+            },
+            "extraversion": {
+                "primary_trait": "Extraversión",
+                "trait_key": "extraversion",
+                "trait_icon": "⚡",
+                "explanation": "Refleja dinamismo social, humor festivo, entusiasmo gregario y alta expresividad.",
+                "emotion": "Alegría"
+            },
+            "agreeableness": {
+                "primary_trait": "Amabilidad",
+                "trait_key": "agreeableness",
+                "trait_icon": "🤝",
+                "explanation": "Refleja empatía interpersonal, apoyo comunitario, afecto sincero y cordialidad.",
+                "emotion": "Afecto"
+            },
+            "neuroticism": {
+                "primary_trait": "Reactividad Emocional",
+                "trait_key": "neuroticism",
+                "trait_icon": "🌊",
+                "explanation": "Refleja alta sensibilidad afectiva, catarsis, inquietud o desahogo emocional.",
+                "emotion": "Sensibilidad"
+            }
+        }
+
+        return trait_map[max_trait]
+
     def analyze_comment_batch(
         self,
         comments: List[Dict[str, Any]],
@@ -98,17 +213,54 @@ class PsychometricsNLPEngine:
     ) -> Dict[str, Any]:
         """
         Procesa una muestra de comentarios de forma instantánea mediante extracción
-        psicolingüística de alta velocidad y aplica Privacidad Diferencial (ε-DP).
+        psicolingüística de alta velocidad, clasifica cada comentario en los 5 rasgos
+        del Big Five y aplica Privacidad Diferencial (ε-DP).
         """
         if not comments:
             return {
                 "age_distribution_percent": {"13-17": 20.0, "18-24": 20.0, "25-34": 20.0, "35-44": 20.0, "45+": 20.0},
                 "big_five_scores": {"conscientiousness": 0.5, "social_dominance": 0.5, "emotional_stability": 0.5, "agreeableness": 0.5, "openness": 0.5},
                 "dominant_emotion": "alegría",
-                "processed_count": 0
+                "processed_count": 0,
+                "categorized_comments": [],
+                "big_five_breakdown": {
+                    "openness": 0,
+                    "conscientiousness": 0,
+                    "extraversion": 0,
+                    "agreeableness": 0,
+                    "neuroticism": 0
+                }
             }
 
-        texts = [c.get("text", "").strip() for c in comments if len(c.get("text", "").strip()) >= 2]
+        categorized_comments: List[Dict[str, Any]] = []
+        breakdown_counts: Dict[str, int] = {
+            "openness": 0,
+            "conscientiousness": 0,
+            "extraversion": 0,
+            "agreeableness": 0,
+            "neuroticism": 0
+        }
+
+        for c in comments:
+            raw_text = c.get("text", "").strip()
+            if not raw_text:
+                continue
+            trait_info = self.classify_comment_big_five(raw_text)
+            trait_key = trait_info["trait_key"]
+            breakdown_counts[trait_key] = breakdown_counts.get(trait_key, 0) + 1
+            categorized_comments.append({
+                "comment_id": str(c.get("comment_id", f"c_{len(categorized_comments)}")),
+                "author_hash": str(c.get("author_hash", "ANON_USER")),
+                "text": raw_text,
+                "likes": int(c.get("likes", 0)),
+                "primary_trait": trait_info["primary_trait"],
+                "trait_key": trait_info["trait_key"],
+                "trait_icon": trait_info["trait_icon"],
+                "explanation": trait_info["explanation"],
+                "emotion": trait_info["emotion"]
+            })
+
+        texts = [c["text"] for c in categorized_comments if len(c["text"]) >= 2]
         if not texts:
             texts = ["genial"]
 
@@ -116,10 +268,16 @@ class PsychometricsNLPEngine:
         if self.enable_local_models:
             classifier = self._lazy_load_classifier()
             if classifier:
-                return self._run_heavy_transformers_batch(texts, classifier, batch_size)
+                res = self._run_heavy_transformers_batch(texts, classifier, batch_size)
+                res["categorized_comments"] = categorized_comments
+                res["big_five_breakdown"] = breakdown_counts
+                return res
 
         # Motor Psicolingüístico Rápido (0.005 segundos, cero consumo de RAM)
-        return self._run_fast_psycholinguistic_engine(texts)
+        res = self._run_fast_psycholinguistic_engine(texts)
+        res["categorized_comments"] = categorized_comments
+        res["big_five_breakdown"] = breakdown_counts
+        return res
 
     def _run_fast_psycholinguistic_engine(self, texts: List[str]) -> Dict[str, Any]:
         """
