@@ -17,12 +17,28 @@ from fastapi.responses import FileResponse
 
 from .schemas import AuditRequest, AuditResponse, TargetMetadata, DemographicsReport, RiskAssessmentReport
 
-from ..src.cookie_manager import TikTokCookieManager
-from ..src.comment_scraper import TikTokCommentScraper
-from ..src.forensic_vault import ForensicVault
-from ..src.privacy_dp import AudienceQualityAnalyzer
-from ..src.nlp_engine import PsychometricsNLPEngine
-from ..src.gemini_synthesizer import GeminiRiskSynthesizer
+import sys
+from pathlib import Path
+
+# Asegurar que el directorio raíz de backend esté en sys.path
+backend_root = Path(__file__).resolve().parent.parent
+if str(backend_root) not in sys.path:
+    sys.path.insert(0, str(backend_root))
+
+try:
+    from src.cookie_manager import TikTokCookieManager
+    from src.comment_scraper import TikTokCommentScraper
+    from src.forensic_vault import ForensicVault
+    from src.privacy_dp import AudienceQualityAnalyzer
+    from src.nlp_engine import PsychometricsNLPEngine
+    from src.gemini_synthesizer import GeminiRiskSynthesizer
+except ImportError:
+    from ..src.cookie_manager import TikTokCookieManager
+    from ..src.comment_scraper import TikTokCommentScraper
+    from ..src.forensic_vault import ForensicVault
+    from ..src.privacy_dp import AudienceQualityAnalyzer
+    from ..src.nlp_engine import PsychometricsNLPEngine
+    from ..src.gemini_synthesizer import GeminiRiskSynthesizer
 
 app = FastAPI(
     title="Auditoría Demográfica y Psicometría en Redes Sociales API",

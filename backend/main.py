@@ -22,15 +22,9 @@ backend_root = Path(__file__).resolve().parent
 if str(backend_root) not in sys.path:
     sys.path.insert(0, str(backend_root))
 
+# Importación ligera para arranque instantáneo del menú
 from src.cookie_manager import TikTokCookieManager
-from src.scraper import TikTokScraper
-from src.user_analyzer import TikTokUserAnalyzer
-from src.comment_scraper import TikTokCommentScraper
-from src.forensic_vault import ForensicVault
-from src.privacy_dp import AudienceQualityAnalyzer
-from src.nlp_engine import PsychometricsNLPEngine
-from src.gemini_synthesizer import GeminiRiskSynthesizer
-from src.utils import export_posts_to_csv, export_summary_to_csv
+
 
 
 def safe_input(prompt: str, default: str = "") -> str:
@@ -58,6 +52,12 @@ def start_api_server(host: str = "127.0.0.1", port: int = 8000, reload: bool = F
 
 def run_full_audit(url: str, sample_comments: int = 150, download_evidence: bool = True, headed: bool = False):
     """Ejecuta el pipeline completo de auditoría y psicometría."""
+    from src.forensic_vault import ForensicVault
+    from src.comment_scraper import TikTokCommentScraper
+    from src.privacy_dp import AudienceQualityAnalyzer
+    from src.nlp_engine import PsychometricsNLPEngine
+    from src.gemini_synthesizer import GeminiRiskSynthesizer
+
     print("\n" + "=" * 68)
     print(f"[*] INICIANDO AUDITORÍA INTEGRAL DE SEGURIDAD Y PSICOMETRÍA")
     print(f"[*] Objetivo: {url}")
