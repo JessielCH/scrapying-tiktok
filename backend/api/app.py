@@ -7,6 +7,7 @@ clasificación Zero-Shot Big Five y síntesis ejecutiva con Gemini 1.5 Flash.
 
 import os
 import re
+import asyncio
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any
