@@ -88,7 +88,7 @@ Genera la respuesta estrictamente en este formato JSON:
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-3.8-flash",
                 contents=prompt_input,
                 config=types.GenerateContentConfig(
                     system_instruction=self.SYSTEM_PROMPT,

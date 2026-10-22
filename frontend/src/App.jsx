@@ -174,7 +174,7 @@ export default function App() {
       .catch(() => setBackendStatus({ status: 'OFFLINE' }));
   }, []);
 
-  const handleAudit = async (targetUrl, sampleSize) => {
+  const handleAudit = async (targetUrl, sampleSize, headed = false) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/v1/audit', {
@@ -184,7 +184,7 @@ export default function App() {
           url: targetUrl,
           sample_comments: sampleSize,
           download_evidence: true,
-          headed_browser: false
+          headed_browser: headed
         })
       });
 

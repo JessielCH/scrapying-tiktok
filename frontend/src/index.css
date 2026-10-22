@@ -252,6 +252,34 @@ body {
   transform: translateY(-1px);
 }
 
+.headed-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 14px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.headed-toggle-label:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.headed-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #0284c7;
+  width: 15px;
+  height: 15px;
+}
+
 /* Grid Layout for Metrics */
 .dashboard-grid {
   display: grid;

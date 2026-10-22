@@ -4,11 +4,12 @@ import { Search, Loader2 } from 'lucide-react';
 export default function AuditSearch({ onAudit, isLoading }) {
   const [url, setUrl] = useState('https://www.tiktok.com/@arigameplays');
   const [sampleSize, setSampleSize] = useState(150);
+  const [headed, setHeaded] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (url.trim()) {
-      onAudit(url.trim(), sampleSize);
+      onAudit(url.trim(), sampleSize, headed);
     }
   };
 
@@ -45,6 +46,16 @@ export default function AuditSearch({ onAudit, isLoading }) {
           <option value={300}>Muestra: 300 comentarios</option>
           <option value={500}>Muestra: 500 comentarios (Profundo)</option>
         </select>
+
+        <label className="headed-toggle-label" title="Abre una ventana de navegador en pantalla por si TikTok solicita resolver un puzzle Captcha manualmente">
+          <input
+            type="checkbox"
+            checked={headed}
+            onChange={(e) => setHeaded(e.target.checked)}
+            disabled={isLoading}
+          />
+          <span className="headed-toggle-text">🖥️ Navegador interactivo</span>
+        </label>
 
         <button type="submit" className="btn-audit" disabled={isLoading}>
           {isLoading ? (
