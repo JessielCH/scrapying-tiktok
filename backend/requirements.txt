@@ -1,0 +1,33 @@
+# =====================================================================
+# Dependencias del Backend: Anti-Detection, NLP, Forense y APIs
+# =====================================================================
+
+# Automatización de Navegador y Evasión Anti-Detección
+playwright>=1.42.0
+playwright-stealth>=1.0.6
+curl_cffi>=0.6.2
+beautifulsoup4>=4.12.3
+lxml>=5.1.0
+
+# Bóveda de Evidencia Forense Multimedia
+yt-dlp>=2024.4.9
+
+# Framework API REST y Servidor Asíncrono
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0
+python-dotenv>=1.0.1
+
+# Pipeline NLP y Modelos Psicométricos (Hugging Face)
+transformers>=4.40.0
+torch>=2.2.0
+pysentimiento>=0.7.2
+optimum>=1.19.0
+onnxruntime>=1.17.0
+
+# Síntesis Ejecutiva y Evaluación con IA Generativa
+google-genai>=0.1.1
+
+# Privacidad Diferencial y Cálculo Científico
+numpy>=1.26.0
+scipy>=1.12.0

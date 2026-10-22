@@ -28,18 +28,59 @@ MANIFEST
 
 # Virtual Environments
 .env
+.env.*
+!.env.example
 .venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Sensitive Data, Cookies, Outputs & Downloads
+# Frontend (Node / Vite / React)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sensitive Data, Cookies, Sessions & Downloads
 data/*
 !data/.gitkeep
 data/downloads/*
 !data/downloads/.gitkeep
+
+backend/data/*
+!backend/data/.gitkeep
+!backend/data/evidence/
+backend/data/evidence/*
+!backend/data/evidence/.gitkeep
+!backend/data/reports/
+backend/data/reports/*
+!backend/data/reports/.gitkeep
+
+*cookies.json
+*cookies.txt
+storage_state.json
+
+# Forensic Multimedia Evidence (MP4 / WebM / MKV)
+backend/data/evidence/*.mp4
+backend/data/evidence/*.webm
+backend/data/evidence/*.mkv
+backend/data/evidence/*.json
+!backend/data/evidence/.gitkeep
+
+# Machine Learning Models & Heavy Caches
+.cache/
+backend/.cache/
+models_onnx/
+backend/models_onnx/
+checkpoints/
 
 # IDE & OS Files
 .vscode/
@@ -51,9 +92,6 @@ Thumbs.db
 
 # Logs & Temporary Files
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # AI Assistant & Agent Directives (Keep repository clean and human-oriented)
 .agent
