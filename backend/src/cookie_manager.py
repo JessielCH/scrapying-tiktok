@@ -235,9 +235,15 @@ class TikTokCookieManager:
         return json_path
 
     def extract_guest_cookies(self) -> Dict[str, Any]:
-        """Envoltorio síncrono para la extracción de cookies en modo invitado."""
+        """Envoltorio síncrono para la extracción de cookies en modo invitado con soporte Proactor en Windows."""
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         return asyncio.run(self.extract_guest_cookies_async())
 
     def extract_login_cookies(self, timeout: int = 300) -> Dict[str, Any]:
-        """Envoltorio síncrono para la autenticación interactiva de usuario."""
+        """Envoltorio síncrono para la autenticación interactiva de usuario con soporte Proactor en Windows."""
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         return asyncio.run(self.extract_login_cookies_async(timeout=timeout))

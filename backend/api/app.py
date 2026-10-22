@@ -114,6 +114,11 @@ async def perform_audit(request: AuditRequest):
     if not url:
         raise HTTPException(status_code=400, detail="Debe proporcionar una URL válida de TikTok.")
 
+    # Normalización automática si se ingresó solo el handle (ej. @arigameplays o arigameplays)
+    if not url.startswith("http://") and not url.startswith("https://"):
+        clean_user = url if url.startswith("@") else f"@{url}"
+        url = f"https://www.tiktok.com/{clean_user}"
+
     video_id = extract_video_id(url)
     creator = extract_creator_handle(url)
     timestamp_utc = datetime.now(timezone.utc).isoformat()
@@ -139,7 +144,9 @@ async def perform_audit(request: AuditRequest):
         cookies_path=str(DATA_DIR / "cookies.json"),
         output_dir=str(DATA_DIR)
     )
-    comments = await scraper.scrape_comments_async(
+    # Ejecutar en hilo de trabajo dedicado con ProactorEventLoop (imprescindible en Windows)
+    comments = await asyncio.to_thread(
+        scraper.scrape_comments,
         post_url=url,
         max_comments=request.sample_comments,
         headed=request.headed_browser

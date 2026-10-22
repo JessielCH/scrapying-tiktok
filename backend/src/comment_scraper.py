@@ -83,7 +83,12 @@ class TikTokCommentScraper:
             cookie_mgr.ensure_cookies()
             self.cookies_path = self.output_dir / "cookies.json"
 
-        print(f"[*] [COMENTARIOS] Iniciando extracción ética para: {post_url}")
+        target_url = post_url.strip()
+        if not target_url.startswith("http://") and not target_url.startswith("https://"):
+            clean_user = target_url if target_url.startswith("@") else f"@{target_url}"
+            target_url = f"https://www.tiktok.com/{clean_user}"
+
+        print(f"[*] [COMENTARIOS] Iniciando extracción ética para: {target_url}")
         print(f"[*] Meta de extracción: hasta {max_comments} comentarios con anonimización SHA-256...")
 
         anonymized_comments: List[Dict[str, Any]] = []
@@ -218,10 +223,10 @@ class TikTokCommentScraper:
                     return {}
 
             try:
-                await page.goto(post_url, timeout=timeout * 1000, wait_until="domcontentloaded")
+                await page.goto(target_url, timeout=timeout * 1000, wait_until="domcontentloaded")
                 await asyncio.sleep(3)
 
-                is_profile = ("/@" in post_url or "tiktok.com/@" in post_url) and ("/video/" not in post_url and "/photo/" not in post_url)
+                is_profile = ("/@" in target_url or "tiktok.com/@" in target_url) and ("/video/" not in target_url and "/photo/" not in target_url)
                 if is_profile:
                     profile_meta = await extract_profile_metadata()
                     print(f"[*] URL de perfil detectada. Perfil: {profile_meta.get('nickname')} (@{profile_meta.get('uniqueId')})")
@@ -286,7 +291,7 @@ class TikTokCommentScraper:
 
             raw_uid = profile_meta.get("uniqueId") or ""
             if not raw_uid:
-                match = re.search(r"@([a-zA-Z0-9_.-]+)", post_url)
+                match = re.search(r"@([a-zA-Z0-9_.-]+)", target_url)
                 raw_uid = match.group(1) if match else "creador_tiktok"
 
             self.last_creator_profile = {
@@ -312,7 +317,10 @@ class TikTokCommentScraper:
         headed: bool = False,
         timeout: int = 35
     ) -> List[Dict[str, Any]]:
-        """Envoltorio síncrono para scrape_comments_async."""
+        """Envoltorio síncrono para scrape_comments_async con soporte Proactor en Windows."""
+        import sys
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
         return asyncio.run(
             self.scrape_comments_async(post_url, max_comments=max_comments, headed=headed, timeout=timeout)
         )
