@@ -298,32 +298,30 @@ class TikTokCommentScraper:
                 except Exception as e_disc:
                     print(f"[!] Aviso al descubrir videos: {e_disc}")
 
-            # Si TikTok impuso captcha o no expuso videos en DOM en modo invitado, asegurar publicaciones para auditar
             if not discovered_video_urls:
-                sample_titles = [
-                    "Reto de 24 horas sin celular con amigos 😂🔥 #viral",
-                    "Cómo organizo mi rutina diaria de contenido y edición 🎯📋",
-                    "Momentos que nos cambiaron la vida para siempre ❤️🙏 #storytime",
-                    "JAJAJA no puedo creer que esto haya pasado en vivo 🤣⚡",
-                    "Probando cosas nuevas que nunca me atreví a hacer ✨🎨",
-                    "Lo que nadie te cuenta sobre ser creador digital 💡🧠",
-                    "Reaccionando a comentarios de la comunidad con ustedes 🥰💖",
-                    "Un día conmigo detrás de cámaras en grabación 🎬🚀",
-                    "Superando los miedos y la ansiedad del día a día 🥺🥀",
-                    "El video más pedido por todos finalmente aquí! 📌🙌"
-                ]
-                for idx in range(min(max_videos, len(sample_titles))):
-                    synthetic_vid = str(7391823900 + idx * 11)
-                    discovered_video_urls.append({
-                        "video_id": synthetic_vid,
-                        "url": f"https://www.tiktok.com/{self.last_creator_profile['handle']}/video/{synthetic_vid}",
-                        "title": sample_titles[idx]
-                    })
+                raise RuntimeError(
+                    "No se pudieron encontrar publicaciones visibles en el perfil de TikTok. "
+                    "TikTok puede estar mostrando un captcha de rompecabezas. "
+                    "Activa la casilla 'Modo Visual (Headed)' o renueva las cookies de sesión con Login QR."
+                )
 
-            # 3. Extraer comentarios y métricas de cada video individual
+            # 3. Extraer comentarios y métricas reales de cada video individual
             final_videos_audit: List[Dict[str, Any]] = []
             all_collected_comments: List[Dict[str, Any]] = []
             total_vids = len(discovered_video_urls)
+
+            def format_metric(val: Any, default: str = "0") -> str:
+                if val is None:
+                    return default
+                try:
+                    num = int(val)
+                    if num >= 1_000_000:
+                        return f"{num / 1_000_000:.1f}M"
+                    if num >= 1_000:
+                        return f"{num / 1_000:.1f}K"
+                    return str(num)
+                except Exception:
+                    return str(val) or default
 
             for idx, v_item in enumerate(discovered_video_urls):
                 vid_id = v_item["video_id"]
@@ -335,104 +333,128 @@ class TikTokCommentScraper:
                     progress_callback(
                         "SCRAPING_VIDEO",
                         pct,
-                        f"Extrayendo comentarios y métricas del Video {idx + 1}/{total_vids} ({v_item['title'][:35]}...)"
+                        f"Extrayendo datos y comentarios reales del Video {idx + 1}/{total_vids} ({v_item['title'][:35]}...)"
                     )
 
                 video_comments: List[Dict[str, Any]] = []
+                real_video_meta = {
+                    "title": v_item.get("title") or f"Publicación {vid_id}",
+                    "views_count": "0",
+                    "likes_count": "0",
+                    "comments_count": "0",
+                    "shares_count": "0",
+                    "cover_url": f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg"
+                }
 
-                # Si es el primer video o una URL real que podemos navegar:
-                if idx < 3 or is_direct_video:
-                    try:
-                        await page.goto(v_url, timeout=18000, wait_until="domcontentloaded")
-                        await asyncio.sleep(2.0)
+                # Navegar al video para extraer SSR y comentarios
+                try:
+                    await page.goto(v_url, timeout=22000, wait_until="domcontentloaded")
+                    await asyncio.sleep(2.5)
 
-                        # Abrir pestaña de comentarios si está presente
-                        tab_el = await page.query_selector('span:has-text("Comments"), span:has-text("Comentarios"), [data-e2e="comment-icon"]')
-                        if tab_el:
-                            await tab_el.click()
-                            await asyncio.sleep(1.2)
+                    # Extraer metadatos 100% reales de SSR
+                    ssr_meta = await page.evaluate("""() => {
+                        const el = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                        if (!el) return null;
+                        try {
+                            const full = JSON.parse(el.innerText);
+                            const scope = full['__DEFAULT_SCOPE__'] || {};
+                            const vDetail = scope['webapp.video-detail'] || {};
+                            const item = (vDetail['itemInfo'] || {})['itemStruct'] || {};
+                            const stats = item['stats'] || {};
+                            const video = item['video'] || {};
+                            return {
+                                desc: item['desc'] || '',
+                                playCount: stats['playCount'],
+                                diggCount: stats['diggCount'],
+                                commentCount: stats['commentCount'],
+                                shareCount: stats['shareCount'],
+                                cover: video['cover'] || video['originCover'] || video['dynamicCover'] || ''
+                            };
+                        } catch(e) {
+                            return null;
+                        }
+                    }""")
 
-                        # Desplazamiento para capturar comentarios
-                        for _ in range(2):
-                            await page.mouse.wheel(0, 800)
-                            await asyncio.sleep(1.0)
+                    if ssr_meta:
+                        if ssr_meta.get("desc"):
+                            real_video_meta["title"] = ssr_meta["desc"]
+                        real_video_meta["views_count"] = format_metric(ssr_meta.get("playCount"), "0")
+                        real_video_meta["likes_count"] = format_metric(ssr_meta.get("diggCount"), "0")
+                        real_video_meta["comments_count"] = format_metric(ssr_meta.get("commentCount"), "0")
+                        real_video_meta["shares_count"] = format_metric(ssr_meta.get("shareCount"), "0")
+                        if ssr_meta.get("cover"):
+                            real_video_meta["cover_url"] = ssr_meta["cover"]
 
-                        # Extraer comentarios del DOM
-                        dom_data = await page.evaluate("""() => {
-                            const items = document.querySelectorAll('[data-e2e="comment-item"], [class*="CommentItem"]');
-                            const list = [];
-                            for (const el of items) {
-                                const userA = el.querySelector('a[href*="/@"], [data-e2e*="user-name"]');
-                                const nickSpan = el.querySelector('[class*="Nickname"], [data-e2e*="nickname"]');
-                                const textP = el.querySelector('[data-e2e="comment-level-1"], p, [class*="CommentText"]');
-                                const likeSpan = el.querySelector('[data-e2e="comment-like-count"]');
-                                const timeSpan = el.querySelector('[data-e2e="comment-time"], [class*="Time"]');
-                                const avatarImg = el.querySelector('img');
+                    # Desplazamiento e interacción para capturar comentarios reales
+                    for _ in range(3):
+                        await page.mouse.wheel(0, 800)
+                        await asyncio.sleep(1.0)
 
-                                const uHandle = userA ? userA.innerText.trim() : '';
-                                const txt = textP ? textP.innerText.trim() : '';
-                                if (txt) {
-                                    list.push({
-                                        username: uHandle,
-                                        nickname: nickSpan ? nickSpan.innerText.trim() : uHandle,
-                                        text: txt,
-                                        likes: likeSpan ? likeSpan.innerText.trim() : '0',
-                                        created_at: timeSpan ? timeSpan.innerText.trim() : 'Reciente',
-                                        avatar: avatarImg ? avatarImg.src : ''
-                                    });
-                                }
+                    # Extraer comentarios reales del DOM
+                    dom_data = await page.evaluate("""() => {
+                        const items = document.querySelectorAll('[data-e2e="comment-item"], [class*="CommentItem"]');
+                        const list = [];
+                        for (const el of items) {
+                            const userA = el.querySelector('a[href*="/@"], [data-e2e*="user-name"]');
+                            const nickSpan = el.querySelector('[class*="Nickname"], [data-e2e*="nickname"]');
+                            const textP = el.querySelector('[data-e2e="comment-level-1"], p, [class*="CommentText"]');
+                            const likeSpan = el.querySelector('[data-e2e="comment-like-count"]');
+                            const timeSpan = el.querySelector('[data-e2e="comment-time"], [class*="Time"]');
+                            const avatarImg = el.querySelector('img');
+
+                            const uHandle = userA ? userA.innerText.trim() : '';
+                            const txt = textP ? textP.innerText.trim() : '';
+                            if (txt) {
+                                list.push({
+                                    username: uHandle,
+                                    nickname: nickSpan ? nickSpan.innerText.trim() : uHandle,
+                                    text: txt,
+                                    likes: likeSpan ? likeSpan.innerText.trim() : '0',
+                                    created_at: timeSpan ? timeSpan.innerText.trim() : 'Reciente',
+                                    avatar: avatarImg ? avatarImg.src : ''
+                                });
                             }
-                            return list;
-                        }""")
+                        }
+                        return list;
+                    }""")
 
-                        for d in dom_data:
-                            u_name = d.get("username") or f"@usuario_{len(video_comments) + 1}"
-                            video_comments.append({
-                                "comment_id": f"c_{vid_id}_{len(video_comments) + 1}",
-                                "author_username": f"@{u_name.lstrip('@')}",
-                                "author_nickname": d.get("nickname") or u_name,
-                                "author_avatar": d.get("avatar") or f"https://api.dicebear.com/7.x/avataaars/svg?seed={u_name}",
-                                "author_hash": self.pseudonymize_identifier(u_name),
-                                "text": d.get("text", ""),
-                                "likes": int(d.get("likes", "0").replace("K", "000").replace("M", "000000").replace(".", "") or 0),
-                                "created_at": d.get("created_at") or "Reciente",
-                                "video_id": vid_id,
-                                "video_title": v_item["title"],
-                                "video_url": v_url
-                            })
-                    except Exception as e_nav:
-                        print(f"[!] Error al navegar al video {vid_id}: {e_nav}")
+                    for d in dom_data:
+                        u_name = d.get("username") or f"@usuario_{len(video_comments) + 1}"
+                        video_comments.append({
+                            "comment_id": f"c_{vid_id}_{len(video_comments) + 1}",
+                            "author_username": f"@{u_name.lstrip('@')}",
+                            "author_nickname": d.get("nickname") or u_name,
+                            "author_avatar": d.get("avatar") or f"https://api.dicebear.com/7.x/avataaars/svg?seed={u_name}",
+                            "author_hash": self.pseudonymize_identifier(u_name),
+                            "text": d.get("text", ""),
+                            "likes": int(str(d.get("likes", "0")).replace("K", "000").replace("M", "000000").replace(".", "") or 0),
+                            "created_at": d.get("created_at") or "Reciente",
+                            "video_id": vid_id,
+                            "video_title": real_video_meta["title"],
+                            "video_url": v_url
+                        })
+                except Exception as e_nav:
+                    print(f"[!] Error al navegar y extraer datos del video {vid_id}: {e_nav}")
 
-                # Incorporar comentarios interceptados por API de red si existen
+                # Incorporar comentarios reales interceptados por API de red
                 if vid_id in captured_api_comments:
                     for api_c in captured_api_comments[vid_id]:
-                        api_c["video_title"] = v_item["title"]
+                        api_c["video_title"] = real_video_meta["title"]
                         api_c["video_url"] = v_url
                         video_comments.append(api_c)
 
-                # Si no se obtuvieron comentarios por bloqueo antibot de TikTok en sesión no autenticada,
-                # generar comentarios comunitarios reales y auténticos para este video
-                if len(video_comments) < 8:
-                    video_comments = self._generate_video_specific_comments(
-                        video_id=vid_id,
-                        video_title=v_item["title"],
-                        video_url=v_url,
-                        creator=self.last_creator_profile["nickname"],
-                        sample_count=comments_per_video
-                    )
-
-                # Guardar video auditado
+                # Guardar video con datos 100% reales
                 final_videos_audit.append({
                     "video_index": idx + 1,
                     "video_id": vid_id,
                     "video_url": v_url,
-                    "title": v_item["title"],
-                    "cover_url": f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg",
+                    "title": real_video_meta["title"],
+                    "cover_url": real_video_meta["cover_url"],
                     "embed_url": f"https://www.tiktok.com/embed/v2/{vid_id}",
-                    "views_count": f"{1.2 + (idx * 0.3):.1f}M",
-                    "likes_count": f"{180 + (idx * 25):.0f}K",
-                    "comments_count": len(video_comments),
-                    "shares_count": f"{12 + (idx * 3):.0f}K",
+                    "views_count": real_video_meta["views_count"],
+                    "likes_count": real_video_meta["likes_count"],
+                    "comments_count": len(video_comments) if video_comments else real_video_meta["comments_count"],
+                    "shares_count": real_video_meta["shares_count"],
                     "comments": video_comments[:comments_per_video]
                 })
                 all_collected_comments.extend(video_comments[:comments_per_video])
@@ -444,79 +466,6 @@ class TikTokCommentScraper:
             "videos": final_videos_audit,
             "all_comments": all_collected_comments
         }
-
-    def _generate_video_specific_comments(
-        self,
-        video_id: str,
-        video_title: str,
-        video_url: str,
-        creator: str,
-        sample_count: int = 30
-    ) -> List[Dict[str, Any]]:
-        """
-        Genera comentarios comunitarios auténticos en español con nombres, usuarios y avatares reales
-        específicos para cada video individual cuando TikTok bloquea el modo invitado.
-        """
-        COMMUNITY_AUTHORS = [
-            ("@valentina_m21", "Valentina Morales ✨", "https://api.dicebear.com/7.x/avataaars/svg?seed=valentina"),
-            ("@mateo.paredes", "Mateo Paredes 🚀", "https://api.dicebear.com/7.x/avataaars/svg?seed=mateo"),
-            ("@daniela_rivera", "Dani Rivera 🌸", "https://api.dicebear.com/7.x/avataaars/svg?seed=daniela"),
-            ("@carlos_gomez09", "Carlos Gómez", "https://api.dicebear.com/7.x/avataaars/svg?seed=carlos"),
-            ("@sofia_castro_ec", "Sofi Castro 💕", "https://api.dicebear.com/7.x/avataaars/svg?seed=sofia"),
-            ("@lucas_mendoza22", "Lucas Mendoza ⚡", "https://api.dicebear.com/7.x/avataaars/svg?seed=lucas"),
-            ("@camila_vlogs", "Camila Vlogs 🎀", "https://api.dicebear.com/7.x/avataaars/svg?seed=camila"),
-            ("@esteban_quito_ec", "Esteban Q.", "https://api.dicebear.com/7.x/avataaars/svg?seed=esteban"),
-            ("@mariana_paz10", "Mariana Paz 🕊️", "https://api.dicebear.com/7.x/avataaars/svg?seed=mariana"),
-            ("@diego_torres99", "Diego Torres", "https://api.dicebear.com/7.x/avataaars/svg?seed=diego"),
-            ("@fernanda_lopez", "Fer López 🥰", "https://api.dicebear.com/7.x/avataaars/svg?seed=fer"),
-            ("@javier_morales_ec", "Javi Morales 🎮", "https://api.dicebear.com/7.x/avataaars/svg?seed=javi"),
-            ("@andrea_silva", "Andrea Silva 🌟", "https://api.dicebear.com/7.x/avataaars/svg?seed=andrea"),
-            ("@martin_herrera", "Martín Herrera", "https://api.dicebear.com/7.x/avataaars/svg?seed=martin"),
-            ("@paula_benitez", "Paula B. 💖", "https://api.dicebear.com/7.x/avataaars/svg?seed=paula")
-        ]
-
-        COMMENT_TEMPLATES = [
-            ("¡Me encanta la creatividad y el estilo de edición de este video, qué genial estética! ✨🎨", 920, "Ayer"),
-            ("Nunca se me hubiera ocurrido combinar los conceptos de esta manera, súper innovador 💡", 450, "Hace 2 días"),
-            ("Ojalá hagas un tutorial explicando qué software o filtros utilizaste para este efecto 🪄", 780, "Hace 3 días"),
-            (f"La fotografía y la armonía visual de {creator} siempre tienen un toque muy especial y artístico 🌟", 610, "Hace 4 días"),
-            ("Muy buen consejo, exactamente los pasos que necesitaba para organizarme mejor en mi rutina 🎯", 670, "Hace 5 días"),
-            ("Gracias por la explicación tan estructurada y precisa, se nota el trabajo previo y dedicación 📋", 830, "Hace 6 días"),
-            ("Disciplina y constancia pura. Para los que queremos aprender, este contenido es oro puro 💼", 1120, "Hace 1 semana"),
-            ("Dato súper importante que muchos omiten, gracias por fundamentar la información con rigor 📊", 480, "Hace 1 semana"),
-            ("JAJAJAJA literal no puedo con esto, me hiciste el día entero brooo 😂🔥", 2800, "Hace 2 horas"),
-            ("Se lo mandé a todo el grupo de amigos y estamos llorando de la risa xddd 🤣🎉", 1950, "Hace 4 horas"),
-            (f"Qué energía tan contagiosa transmite {creator}, imposible no sonreír con este video 😎⚡", 1640, "Hace 8 horas"),
-            ("JAJAJAJA soy ese totalmente cuando salgo los fines de semana, qué locura! 🕺🥳", 1430, "Hace 12 horas"),
-            ("Muchas bendiciones para ti y tu familia, siempre transmites una paz hermosa ❤️🙏", 3100, "Hace 1 día"),
-            (f"Qué lindo corazón tienes {creator}, gracias por tomarte el tiempo de alegrarnos el día 🥰💖", 2450, "Hace 2 días"),
-            ("Te mereces todo el éxito del mundo por ser una persona tan humilde y cercana 🌸🤍", 1890, "Hace 3 días"),
-            ("Qué hermosa sonrisa, te mando un abrazo enorme desde acá con todo el cariño 💐✨", 1520, "Hace 4 días"),
-            ("Esto me dio tanta nostalgia y un nudo en la garganta que casi me pongo a llorar 😭💔", 1240, "Hace 1 día"),
-            ("Siento que nadie entiende este sentimiento tan difícil, gracias por ponerlo en palabras 🥺🌧️", 980, "Hace 2 días"),
-            ("Me pegó fuertísimo en la herida, justo estoy pasando por una semana súper pesada y con ansiedad 😞🥀", 1450, "Hace 3 días"),
-            ("A veces cuesta tanto fingir que todo está bien, me sentí súper vulnerable viendo esto 😿🤍", 1110, "Hace 5 días")
-        ]
-
-        results = []
-        for i in range(sample_count):
-            auth = COMMUNITY_AUTHORS[i % len(COMMUNITY_AUTHORS)]
-            tmpl = COMMENT_TEMPLATES[i % len(COMMENT_TEMPLATES)]
-            results.append({
-                "comment_id": f"c_{video_id}_{i + 1}",
-                "author_username": auth[0],
-                "author_nickname": auth[1],
-                "author_avatar": auth[2],
-                "author_hash": self.pseudonymize_identifier(f"{auth[0]}_{video_id}_{i}"),
-                "text": tmpl[0],
-                "likes": tmpl[1] + (i * 15),
-                "reply_count": (i % 5) + 1,
-                "created_at": tmpl[2],
-                "video_id": video_id,
-                "video_title": video_title,
-                "video_url": video_url
-            })
-        return results
 
     def scrape_comments(
         self,
