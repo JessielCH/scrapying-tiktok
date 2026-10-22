@@ -92,12 +92,17 @@ scrap-tiktok/
 ```bash
 cd backend
 
-# Crear y activar entorno virtual
+# Crear el entorno virtual aislado
 python -m venv .venv
 
-# En Windows:
-.venv\Scripts\activate
-# En Linux / macOS:
+# Activar en Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Nota: Si PowerShell bloquea scripts, ejecuta antes: Set-ExecutionPolicy -Scope Process RemoteSigned
+
+# Activar en Windows (Símbolo del sistema / CMD):
+.venv\Scripts\activate.bat
+
+# Activar en Linux / macOS:
 # source .venv/bin/activate
 
 # Instalar dependencias
