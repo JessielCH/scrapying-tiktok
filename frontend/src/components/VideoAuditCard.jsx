@@ -104,27 +104,43 @@ export default function VideoAuditCard({ video }) {
         </div>
 
         <div className="video-b5-bars">
-          {Object.entries(TRAIT_CONFIG).map(([key, config]) => {
-            const score = (video.big_five_scores && video.big_five_scores[key] !== undefined)
-              ? video.big_five_scores[key]
-              : 0.50;
-            const pct = Math.round(score * 100);
+          {(() => {
+            const entries = Object.entries(TRAIT_CONFIG);
+            const rawScores = entries.map(([key]) => {
+              const val = video.big_five_scores ? video.big_five_scores[key] : 0;
+              return typeof val === 'number' ? val : 0;
+            });
+            const sumScores = rawScores.reduce((a, b) => a + b, 0);
+            let pcts = sumScores > 0
+              ? rawScores.map(v => Math.round((v / sumScores) * 100))
+              : entries.map(() => 0);
+            
+            if (sumScores > 0) {
+              const diff = 100 - pcts.reduce((a, b) => a + b, 0);
+              if (diff !== 0) {
+                const maxIdx = pcts.indexOf(Math.max(...pcts));
+                pcts[maxIdx] += diff;
+              }
+            }
 
-            return (
-              <div key={key} className="b5-mini-row">
-                <div className="b5-mini-label">
-                  <span>{config.icon} {config.label}</span>
-                  <span className="b5-mini-pct">{pct}%</span>
+            return entries.map(([key, config], idx) => {
+              const pct = pcts[idx];
+              return (
+                <div key={key} className="b5-mini-row">
+                  <div className="b5-mini-label">
+                    <span>{config.icon} {config.label}</span>
+                    <span className="b5-mini-pct">{pct}%</span>
+                  </div>
+                  <div className="b5-mini-bar-track">
+                    <div
+                      className="b5-mini-bar-fill"
+                      style={{ width: `${pct}%`, backgroundColor: config.color }}
+                    />
+                  </div>
                 </div>
-                <div className="b5-mini-bar-track">
-                  <div
-                    className="b5-mini-bar-fill"
-                    style={{ width: `${pct}%`, backgroundColor: config.color }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </div>
 

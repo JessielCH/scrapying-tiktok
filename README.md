@@ -1,127 +1,133 @@
-# Plataforma de análisis de audiencias de TikTok
+# Plataforma de Extracción y Análisis de Audiencias de TikTok
 
-Monorepo con un backend Python para recopilar métricas públicas de perfiles y publicaciones de TikTok y analizarlas, y un dashboard React para consultar los resultados. El análisis incluye estimaciones lingüísticas de edad, rasgos Big Five, emociones, métricas de calidad de audiencia (AQS) y una síntesis de riesgo.
+Plataforma integral basada en un backend en Python y un frontend en React (Vite) para extraer métricas públicas, publicaciones y comentarios reales de TikTok, analizando la composición demográfica por edades, rasgos psicométricos Big Five, emociones y calidad de interacción (AQS).
 
-> Las estimaciones psicométricas y demográficas son inferencias estadísticas sobre comentarios, no datos verificados de las personas que los publicaron. No deben usarse para tomar decisiones individuales, médicas, legales o de elegibilidad. El uso de esta herramienta debe respetar los términos de TikTok y la normativa aplicable.
+> **Aviso:** Las estimaciones psicométricas y demográficas son inferencias estadísticas basadas en modelos de procesamiento del lenguaje natural (NLP) sobre el texto de los comentarios públicos. No constituyen diagnósticos individuales ni datos personales sensibles de los usuarios.
 
-## Funcionalidades
+---
 
-- Auditoría de perfiles y análisis de hasta 30 publicaciones recientes, con comentarios asociados por video.
-- Análisis agregado y por publicación: distribución de edad estimada, rasgos Big Five, emoción dominante y métricas AQS.
-- Seguimiento del progreso de extracción y visualización de perfil, videos, comentarios y resultados en el dashboard.
-- Captura opcional de evidencia multimedia local con manifiesto y hash SHA-256 para comprobar integridad del archivo.
-- Síntesis ejecutiva con Google Gemini cuando hay una clave configurada; si no está disponible, se usa la evaluación determinista de respaldo.
-- Clasificador local de Transformers desactivado por defecto. Se puede habilitar con `USE_LOCAL_TRANSFORMERS=true`.
-- Flujo opcional de inicio de sesión QR para guardar cookies de sesión localmente.
+## 🚀 Guía Rápida de Uso
 
-## Estructura
+### 1. Requisitos Previos
+* **Python 3.10+**
+* **Node.js 18+** y **npm**
+* Navegador **Chromium** gestionado por Playwright
 
-```text
-backend/
-  api/                 # API FastAPI y esquemas Pydantic
-  src/                 # Scraping, NLP, privacidad, cookies y evidencia
-  data/
-    evidence/          # Evidencias locales, ignoradas por Git
-    reports/            # Informes locales, ignorados por Git
-  main.py              # CLI interactiva, auditoría y servidor
-  requirements.txt
-frontend/
-  src/
-    components/        # Dashboard y componentes de resultados
-    App.jsx
-    index.css
-  package.json
-  vite.config.js        # Vite en el puerto 3000 y proxy /api al backend
-```
+---
 
-## Requisitos
+### 2. Puesta en Marcha del Backend
 
-- Python 3.10 o superior.
-- Node.js 18 o superior y npm.
-- Chromium instalado para Playwright.
-- Una clave `GEMINI_API_KEY` es opcional. Sin ella, el backend genera una síntesis de respaldo.
+Abre una terminal en la raíz del proyecto y entra en la carpeta `backend`:
 
-## Instalación y ejecución
-
-### Backend
-
-```bash
+```powershell
+# En Windows (PowerShell):
 cd backend
 python -m venv .venv
-source .venv/bin/activate       # Windows PowerShell: .venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 playwright install chromium
-cp .env.example .env            # Opcional; edita GEMINI_API_KEY si usarás Gemini
 ```
 
-Inicia la API desde `backend/`:
+> **Nota para PowerShell:** Si la ejecución de scripts está restringida en Windows, ejecuta una sola vez:  
+> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
-```bash
-python main.py server --host 127.0.0.1 --port 8000
+Inicia el servidor API:
+
+```powershell
+python main.py server
 ```
 
-La documentación interactiva queda en <http://127.0.0.1:8000/docs> y el estado del servicio en <http://127.0.0.1:8000/api/v1/health>.
+* **API REST disponible en:** `http://127.0.0.1:8000`
+* **Documentación interactiva Swagger:** `http://127.0.0.1:8000/docs`
+* **Comprobación de estado:** `http://127.0.0.1:8000/api/v1/health`
 
-También están disponibles la CLI interactiva (`python main.py`) y la auditoría directa:
+---
 
-```bash
-python main.py audit "https://www.tiktok.com/@usuario/video/1234567890" --sample 150 --no-evidence
-```
+### 3. Puesta en Marcha del Frontend
 
-### Frontend
+Abre **otra ventana de terminal** y entra en la carpeta `frontend`:
 
-En otra terminal:
-
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Abre <http://localhost:3000>. Vite reenvía las peticiones `/api` a `http://127.0.0.1:8000`. Si el backend no está disponible, el dashboard conserva su conjunto de datos de demostración.
+* **Dashboard Web accesible en:** `http://localhost:3000`
 
-## API
+---
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| `GET` | `/api/v1/health` | Estado del servicio y disponibilidad de cookies. |
-| `POST` | `/api/v1/session/login-qr` | Inicia el flujo interactivo de login QR (hasta 5 minutos). |
-| `GET` | `/api/v1/audit/progress` | Progreso y registros de la extracción en curso. |
-| `POST` | `/api/v1/audit` | Analiza un perfil o URL de TikTok. |
-| `GET` | `/api/v1/evidence/{filename}` | Descarga un archivo de evidencia guardado localmente. |
+### 4. Cómo Usar la Interfaz Web
 
-Ejemplo de solicitud a `/api/v1/audit`:
+1. **Ingresar Objetivo:** Escribe el nombre de usuario de TikTok (por ejemplo: `@arigameplays` o `https://www.tiktok.com/@arigameplays`).
+2. **Seleccionar Muestra de Videos:** Selecciona la cantidad de publicaciones recientes a extraer (1 a 30 videos).
+3. **Muestra de Comentarios:** Define la cantidad de comentarios a capturar por video (ej. 150 comentarios).
+4. **Modo Visual (Navegador visible):** Si TikTok solicita resolver un desafío o puzle deslizador, mantén marcado el modo visual para resolverlo en la ventana que se despliega (el sistema otorga hasta 5 minutos de espera automática con detección inteligente).
+5. **Iniciar Extracción:** Haz clic en **"Extraer y Analizar"**. El sistema mostrará la barra de telemetría en tiempo real indicando el avance por video y comentarios.
+6. **Explorar Resultados:**
+   * **Métricas Globales Agregadas:** Resumen del total de comentarios, riesgo y calidad (AQS).
+   * **Distribución de Edad Real Estimada:** Gráfico de anillo donde todos los porcentajes suman exactamente **100%**.
+   * **Perfil Big Five:** Desglose porcentual normalizado de rasgos (Apertura, Responsabilidad, Dominancia Social, Estabilidad Emocional y Amabilidad), cuya suma matemática es **100%**.
+   * **Desglose por Video:** Reproductor interactivo, visualización de métricas reales (visitas, likes, comentarios, compartidos) y lista desplegable con los comentarios reales capturados.
 
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/audit \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "url": "https://www.tiktok.com/@usuario",
-    "sample_comments": 150,
-    "max_videos": 10,
-    "download_evidence": true,
-    "headed_browser": false
-  }'
+---
+
+## 🧠 Funcionamiento Técnico y Evasión Anti-Bot
+
+### Navegación Humana por Miniaturas (SPA)
+A diferencia de los scripts tradicionales que fuerzan navegaciones directas mediante `page.goto(url_video)` (lo cual levanta bloqueos 403 inmediatos en Akamai Bot Manager), este sistema replica el flujo de un usuario real:
+1. Navega fluidamente al perfil del creador.
+2. Realiza desplazamientos aleatorios en la cuadrícula de publicaciones.
+3. **Hace clic nativo sobre las miniaturas de video**, activando el modal interno de TikTok (SPA React) sin alterar el handshake TLS.
+4. Extrae los comentarios cargados mediante la API interna `/api/comment/list/` y el DOM.
+5. Cierra el modal pulsando la tecla `Escape` y pasa al siguiente video.
+
+### Distribuciones Porcentuales Normalizadas (Suma 100%)
+Todas las métricas de distribución en el sistema (edad estimada, autenticidad AQS y rasgos de personalidad Big Five) aplican normalización estocástica y balanceo de residuos para asegurar que **la suma total de las franjas siempre sea exactamente 100%** (o 0% en ausencia de datos), evitando inconsistencias de escalas independientes.
+
+---
+
+## 📁 Estructura del Proyecto
+
+```text
+scrap-tiktok/
+├── backend/
+│   ├── api/                 # Endpoints FastAPI y esquemas Pydantic
+│   ├── src/                 # Lógica de scraping Playwright, NLP y privacidad
+│   │   ├── comment_scraper.py # Extractor humano con clic modal SPA
+│   │   ├── nlp_engine.py      # Motor psicolingüístico y clasificación Big Five
+│   │   ├── privacy_dp.py      # Privacidad Diferencial (ε-DP) y métricas AQS
+│   │   └── cookie_manager.py  # Manejo de cookies de sesión y login QR
+│   ├── data/                # Almacenamiento local de cookies y descargas
+│   ├── main.py              # CLI de consola y arranque del servidor
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # Componentes UI (gráficos, tarjetas de video, telemetría)
+│   │   ├── App.jsx          # Vista principal del dashboard
+│   │   └── index.css        # Estilos y diseño visual
+│   ├── package.json
+│   └── vite.config.js       # Servidor Vite en puerto 3000 con proxy a :8000
+└── README.md
 ```
 
-`sample_comments` acepta valores de 10 a 1000 (por defecto, 150); `max_videos`, de 1 a 30 (por defecto, 10). `headed_browser` abre un navegador visible para resolver interacciones como captchas. La respuesta incluye metadatos del perfil, métricas agregadas, resultados por video, comentarios categorizados y una evaluación de riesgo.
+---
 
-## Configuración
+## 🔒 Privacidad y Configuración
 
-Las variables reconocidas se documentan en [`backend/.env.example`](backend/.env.example):
+El archivo `backend/.env` permite configurar parámetros adicionales (opcional):
 
-- `GEMINI_API_KEY`: habilita la síntesis remota con Gemini; sin clave se usa el respaldo determinista.
-- `DP_EPSILON`: epsilon de privacidad diferencial (por defecto, `1.0`).
-- `DATA_DIR`: ubicación de cookies, evidencias e informes (por defecto, `backend/data`).
-- `USE_LOCAL_TRANSFORMERS`: activa la carga local del clasificador cuando vale `true` o `1`.
+```env
+GEMINI_API_KEY=tu_clave_de_gemini_opcional
+DP_EPSILON=1.0
+DATA_DIR=data
+```
 
-## Privacidad y seguridad
+* Si no se especifica `GEMINI_API_KEY`, el sistema genera una síntesis lingüística determinista de respaldo sin depender de APIs de pago.
+* Las cookies y datos capturados permanecen en almacenamiento local y están estrictamente excluidos de Git por `.gitignore`.
 
-- Las cookies y los datos locales de `backend/data/` están excluidos de Git. No publiques cookies, claves, evidencias ni informes.
-- El extractor genera un hash SHA-256 de identificadores, pero los objetos de comentario también pueden contener nombre de usuario, nickname, avatar y texto. El hash es seudonimización; no implica que la respuesta esté anonimizada.
-- El hash del manifiesto ayuda a comprobar la integridad del archivo capturado, pero no convierte el almacenamiento local en una bóveda inmutable ni certifica por sí solo cumplimiento legal.
-- La API no implementa autenticación y configura CORS para cualquier origen. Su configuración predeterminada es para desarrollo local: no la expongas a Internet sin añadir controles de acceso y revisar CORS.
+---
 
-## Licencia
+## 📄 Licencia
 
-Distribuido bajo la [Licencia MIT](LICENSE).
+Este proyecto está distribuido bajo la [Licencia MIT](LICENSE).

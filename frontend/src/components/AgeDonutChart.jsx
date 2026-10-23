@@ -29,8 +29,30 @@ export default function AgeDonutChart({ ageDistribution, sampleSize }) {
     '45+': '45+ años (Mayores)'
   };
 
+  // Asegurar que la distribución sume exactamente 100% (o 0% si no hay datos)
+  const keys = Object.keys(labels);
+  const rawVals = keys.map(k => (dist && dist[k] !== undefined ? Number(dist[k]) : 0));
+  const sumRaw = rawVals.reduce((a, b) => a + b, 0);
+
+  let normalizedDist = {};
+  if (sumRaw > 0) {
+    let pcts = rawVals.map(v => Math.round((v / sumRaw) * 100));
+    const diff = 100 - pcts.reduce((a, b) => a + b, 0);
+    if (diff !== 0) {
+      const maxIdx = pcts.indexOf(Math.max(...pcts));
+      pcts[maxIdx] += diff;
+    }
+    keys.forEach((k, idx) => {
+      normalizedDist[k] = pcts[idx];
+    });
+  } else {
+    keys.forEach(k => {
+      normalizedDist[k] = 0;
+    });
+  }
+
   // Cálculo de los arcos del SVG Donut
-  const entries = Object.entries(dist);
+  const entries = keys.map(k => [k, normalizedDist[k]]);
   let cumulativePercent = 0;
 
   const slices = entries.map(([group, percent]) => {
@@ -57,7 +79,7 @@ export default function AgeDonutChart({ ageDistribution, sampleSize }) {
     };
   });
 
-  const minorPercentage = dist['13-17'] || 0;
+  const minorPercentage = normalizedDist['13-17'] || 0;
 
   return (
     <div className="card">

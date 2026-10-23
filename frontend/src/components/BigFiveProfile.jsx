@@ -45,10 +45,24 @@ export default function BigFiveProfile({ psychometrics, dominantEmotion, aqsScor
       key: 'agreeableness',
       label: 'Amabilidad Comunitaria',
       desc: 'Empatía y cohesión comunicacional con la comunidad',
-      value: scores.agreeableness || 0.5,
+      value: scores.agreeableness || 0.0,
       color: '#64748b'
     }
   ];
+
+  // Garantizar que la suma de porcentajes sea exactamente 100% (o 0% si no hay datos)
+  const sumScores = traitConfigs.reduce((acc, t) => acc + (Number(t.value) || 0), 0);
+  let pcts = [];
+  if (sumScores > 0) {
+    pcts = traitConfigs.map(t => Math.round(((Number(t.value) || 0) / sumScores) * 100));
+    const diff = 100 - pcts.reduce((a, b) => a + b, 0);
+    if (diff !== 0) {
+      const maxIdx = pcts.indexOf(Math.max(...pcts));
+      pcts[maxIdx] += diff;
+    }
+  } else {
+    pcts = traitConfigs.map(() => 0);
+  }
 
   return (
     <div className="card">
@@ -64,8 +78,8 @@ export default function BigFiveProfile({ psychometrics, dominantEmotion, aqsScor
       </div>
 
       <div className="b5-list">
-        {traitConfigs.map((t) => {
-          const percent = Math.round(t.value * 100);
+        {traitConfigs.map((t, idx) => {
+          const percent = pcts[idx];
           return (
             <div key={t.key} className="b5-item">
               <div className="b5-header">

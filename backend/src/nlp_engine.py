@@ -272,11 +272,13 @@ class PsychometricsNLPEngine:
             return {
                 "age_distribution_percent": {"13-17": 0.0, "18-24": 0.0, "25-34": 0.0, "35-44": 0.0, "45+": 0.0},
                 "big_five_scores": {
-                    "conscientiousness": 0.5,
-                    "social_dominance": 0.5,
-                    "emotional_stability": 0.5,
-                    "agreeableness": 0.5,
-                    "openness": 0.5
+                    "conscientiousness": 0.0,
+                    "social_dominance": 0.0,
+                    "extraversion": 0.0,
+                    "emotional_stability": 0.0,
+                    "agreeableness": 0.0,
+                    "openness": 0.0,
+                    "neuroticism": 0.0
                 },
                 "dominant_emotion": "Sin comentarios extraídos",
                 "categorized_comments": [],
@@ -293,15 +295,20 @@ class PsychometricsNLPEngine:
                 return res
 
         # Motor Psicolingüístico Rápido (0.005 segundos, cero consumo de RAM)
-        res = self._run_fast_psycholinguistic_engine(texts)
+        res = self._run_fast_psycholinguistic_engine(texts, breakdown_counts)
         res["categorized_comments"] = categorized_comments
         res["big_five_breakdown"] = breakdown_counts
         return res
 
-    def _run_fast_psycholinguistic_engine(self, texts: List[str]) -> Dict[str, Any]:
+    def _run_fast_psycholinguistic_engine(
+        self,
+        texts: List[str],
+        breakdown_counts: Optional[Dict[str, int]] = None
+    ) -> Dict[str, Any]:
         """
         Motor psicolingüístico ultrarrápido basado en los marcadores de Roberts et al. (2006)
         y Soto et al. (2011) en el idioma español.
+        Calcula distribuciones donde todas las métricas porcentuales suman exactamente 100.0%.
         """
         total = len(texts)
         minor_signals = 0      # 13-17
@@ -349,28 +356,49 @@ class PsychometricsNLPEngine:
             "45+": senior_signals * 0.3 + 1.0
         }
 
-        # 1. Privacidad Diferencial (Ruido Laplace) sobre distribución de edad
+        # 1. Privacidad Diferencial (Ruido Laplace) sobre distribución de edad (suma exacta = 100.0%)
         sanitized_age = self.dp_engine.sanitize_distribution(raw_age_counts)
 
-        # 2. Estimación de Big Five correlacionada con los marcadores observados
-        minor_ratio = sanitized_age.get("13-17", 30.0) / 100.0
-        conscientiousness = round(max(0.15, min(0.85, 0.70 - (minor_ratio * 0.6))), 2)
-        social_dominance = round(max(0.30, min(0.95, 0.45 + (minor_ratio * 0.4))), 2)
-        emotional_stability = round(max(0.20, min(0.80, 0.65 - (minor_ratio * 0.45))), 2)
-        openness = round(max(0.40, min(0.90, 0.55 + (minor_ratio * 0.25))), 2)
-        agreeableness = 0.58
+        # 2. Distribución exacta de Big Five proporcional a los comentarios reales (suma exacta = 100.0%)
+        total_b5 = sum(breakdown_counts.values()) if breakdown_counts else 0
+        if total_b5 > 0:
+            b5_pcts = {
+                "openness": round((breakdown_counts.get("openness", 0) / total_b5) * 100.0, 1),
+                "conscientiousness": round((breakdown_counts.get("conscientiousness", 0) / total_b5) * 100.0, 1),
+                "extraversion": round((breakdown_counts.get("extraversion", 0) / total_b5) * 100.0, 1),
+                "agreeableness": round((breakdown_counts.get("agreeableness", 0) / total_b5) * 100.0, 1),
+                "emotional_stability": round((breakdown_counts.get("neuroticism", 0) / total_b5) * 100.0, 1)
+            }
+            diff_b5 = round(100.0 - sum(b5_pcts.values()), 1)
+            if diff_b5 != 0:
+                max_k = max(b5_pcts, key=b5_pcts.get)
+                b5_pcts[max_k] = round(b5_pcts[max_k] + diff_b5, 1)
+
+            big_five_scores = {
+                "openness": round(b5_pcts["openness"] / 100.0, 3),
+                "conscientiousness": round(b5_pcts["conscientiousness"] / 100.0, 3),
+                "extraversion": round(b5_pcts["extraversion"] / 100.0, 3),
+                "social_dominance": round(b5_pcts["extraversion"] / 100.0, 3),
+                "agreeableness": round(b5_pcts["agreeableness"] / 100.0, 3),
+                "emotional_stability": round(b5_pcts["emotional_stability"] / 100.0, 3),
+                "neuroticism": round(b5_pcts["emotional_stability"] / 100.0, 3)
+            }
+        else:
+            big_five_scores = {
+                "openness": 0.0,
+                "conscientiousness": 0.0,
+                "extraversion": 0.0,
+                "social_dominance": 0.0,
+                "agreeableness": 0.0,
+                "emotional_stability": 0.0,
+                "neuroticism": 0.0
+            }
 
         dominant_emotion = max(emotion_counters, key=emotion_counters.get) if emotion_counters else "alegría"
 
         return {
             "age_distribution_percent": sanitized_age,
-            "big_five_scores": {
-                "conscientiousness": conscientiousness,
-                "social_dominance": social_dominance,
-                "emotional_stability": emotional_stability,
-                "agreeableness": agreeableness,
-                "openness": openness
-            },
+            "big_five_scores": big_five_scores,
             "dominant_emotion": dominant_emotion,
             "processed_count": total
         }

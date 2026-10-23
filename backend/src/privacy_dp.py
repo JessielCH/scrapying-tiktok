@@ -47,13 +47,18 @@ class DifferentialPrivacyEngine:
 
         total_sum = sum(noisy_counts.values())
         if total_sum <= 0:
-            return {cat: round(100.0 / len(distribution), 2) for cat in distribution}
+            return {cat: 0.0 for cat in distribution}
 
-        # Normalización estocástica a 100%
-        return {
-            cat: round((val / total_sum) * 100.0, 2)
+        # Normalización a 100% garantizada matemáticamente
+        res = {
+            cat: round((val / total_sum) * 100.0, 1)
             for cat, val in noisy_counts.items()
         }
+        diff = round(100.0 - sum(res.values()), 1)
+        if diff != 0:
+            max_cat = max(res, key=res.get)
+            res[max_cat] = round(res[max_cat] + diff, 1)
+        return res
 
 
 class AudienceQualityAnalyzer:
@@ -80,9 +85,9 @@ class AudienceQualityAnalyzer:
         total = len(comments)
         if total == 0:
             return {
-                "aqs_score": 50.0,
-                "authenticity_percent": 50.0,
-                "spam_bot_percent": 50.0,
+                "aqs_score": 0.0,
+                "authenticity_percent": 0.0,
+                "spam_bot_percent": 0.0,
                 "avg_word_length": 0.0,
                 "emoji_density": 0.0,
                 "elongation_rate": 0.0
