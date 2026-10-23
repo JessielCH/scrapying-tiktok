@@ -1,161 +1,126 @@
-# Plataforma de Auditoría Demográfica, Psicometría y Evidencia Forense en Redes Sociales
+# Plataforma de análisis de audiencias de TikTok
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![React 18](https://img.shields.io/badge/react-18.3.1-61dafb.svg)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/vite-5.2-646cff.svg)](https://vitejs.dev/)
-[![Playwright](https://img.shields.io/badge/playwright-stealth-green.svg)](https://playwright.dev/)
-[![TLS Impersonation](https://img.shields.io/badge/TLS-curl__cffi-orange.svg)](https://github.com/yifeikong/curl_cffi)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
-[![Gemini 1.5 Flash](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-4285f4.svg)](https://ai.google.dev/)
-[![Licencia: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Monorepo con un backend Python para recopilar métricas públicas de perfiles y publicaciones de TikTok y analizarlas, y un dashboard React para consultar los resultados. El análisis incluye estimaciones lingüísticas de edad, rasgos Big Five, emociones, métricas de calidad de audiencia (AQS) y una síntesis de riesgo.
 
-Plataforma de ingeniería estructurada en **Monorepo** para la auditoría de audiencias, psicometría computacional (Big Five), estimación etaria real mediante Procesamiento de Lenguaje Natural (NLP), preservación de evidencia forense inmutable y evaluación de riesgos comerciales (Brand Safety) y parentales (estilo Bark).
+> Las estimaciones psicométricas y demográficas son inferencias estadísticas sobre comentarios, no datos verificados de las personas que los publicaron. No deben usarse para tomar decisiones individuales, médicas, legales o de elegibilidad. El uso de esta herramienta debe respetar los términos de TikTok y la normativa aplicable.
 
----
+## Funcionalidades
 
-## Características Principales
+- Auditoría de perfiles y análisis de hasta 30 publicaciones recientes, con comentarios asociados por video.
+- Análisis agregado y por publicación: distribución de edad estimada, rasgos Big Five, emoción dominante y métricas AQS.
+- Seguimiento del progreso de extracción y visualización de perfil, videos, comentarios y resultados en el dashboard.
+- Captura opcional de evidencia multimedia local con manifiesto y hash SHA-256 para comprobar integridad del archivo.
+- Síntesis ejecutiva con Google Gemini cuando hay una clave configurada; si no está disponible, se usa la evaluación determinista de respaldo.
+- Clasificador local de Transformers desactivado por defecto. Se puede habilitar con `USE_LOCAL_TRANSFORMERS=true`.
+- Flujo opcional de inicio de sesión QR para guardar cookies de sesión localmente.
 
-- **Arquitectura Monorepo:** Centraliza el motor analítico (`backend/`) y el panel de control ejecutivo (`frontend/`), compartiendo contratos de API y configuraciones de despliegue.
-- **Bóveda de Evidencia Forense Inmutable:** Descarga automatizada de videos con `yt-dlp` y certificación de autenticidad pericial mediante **firmas SHA-256** y marcas de tiempo UTC.
-- **Scraping Ético y Privacidad (LOPDP Ecuador Arts. 19 y 21):** Extracción de comentarios con **hashing unidireccional SHA-256 en memoria** para impedir cualquier exposición de identidades personales o de menores.
-- **Psicometría y Modelado Big Five (NLP):**
-  - Clasificación Zero-Shot con `mDeBERTa-v3` multilingüe adaptada a jerga hispana.
-  - Estimación etaria probabilística basada en las trayectorias del desarrollo normativo (Roberts et al., 2006; Soto et al., 2011).
-  - Detección de emociones básicas de Ekman con `pysentimiento` (RoBERTuito).
-- **Garantías Matemáticas de Privacidad Diferencial ($\epsilon$-DP):** Inyección de ruido Laplaciano sobre las distribuciones agregadas de edad y personalidad.
-- **Síntesis Ejecutiva con Gemini 1.5 Flash:** Generación de dictámenes estructurados en JSON sobre viabilidad comercial de pauta y alertas de control parental predictivo.
-- **Dashboard Clínico Ejecutivo:** Interfaz aséptica en React 18 con fondos blancos puros, gráficos de anillos de edad en SVG, semáforos de riesgo y descarga pericial.
-
----
-
-## Estructura del Monorepo
+## Estructura
 
 ```text
-scrap-tiktok/
-├── backend/                              # Motor Computacional y APIs REST (Python 3.10+)
-│   ├── api/                              # Servidor FastAPI y esquemas Pydantic
-│   │   ├── __init__.py
-│   │   ├── app.py                        # Endpoints REST (/audit, /evidence, /health)
-│   │   └── schemas.py                    # Validación de contratos de datos
-│   ├── src/                              # Módulos core de ingeniería
-│   │   ├── __init__.py
-│   │   ├── cookie_manager.py             # Sesiones Playwright (Guest y QR Login)
-│   │   ├── anti_detect.py                # Camuflaje TLS JA3/JA4 y bypass de automatización
-│   │   ├── comment_scraper.py            # Extracción y anonimización SHA-256 de comentarios
-│   │   ├── forensic_vault.py             # Preservación de video inmutable y firma SHA-256
-│   │   ├── nlp_engine.py                 # mDeBERTa-v3 Zero-Shot NLI y emociones de Ekman
-│   │   ├── privacy_dp.py                 # Privacidad Diferencial (ε-DP) y métricas AQS
-│   │   ├── gemini_synthesizer.py         # Cliente Gemini 1.5 Flash con salida JSON estricta
-│   │   ├── scraper.py                    # Extracción SSR y streaming de video
-│   │   ├── user_analyzer.py              # Analizador estadístico de perfiles y posts
-│   │   └── utils.py                      # Serializadores Netscape y CSVs
-│   ├── data/                             # Almacén local protegido (en .gitignore)
-│   │   ├── evidence/                     # Videos MP4 forenses y manifiestos
-│   │   └── reports/                      # Reportes CSV, JSON y dictámenes
-│   ├── .env.example                      # Plantilla de variables de entorno
-│   ├── requirements.txt                  # Dependencias de Python del backend
-│   └── main.py                           # CLI interactivo y lanzador del servidor
-├── frontend/                             # Dashboard Clínico Ejecutivo (React / Vite)
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.jsx                # Barra superior y sellos de seguridad LOPDP
-│   │   │   ├── AuditSearch.jsx           # Barra de búsqueda clínica para URLs
-│   │   │   ├── EvidenceCard.jsx          # Clasificación y descarga pericial SHA-256
-│   │   │   ├── AgeDonutChart.jsx         # Gráfico de anillos de edad real estimada
-│   │   │   ├── BigFiveProfile.jsx        # Barras de Responsabilidad, Dominancia y Afecto
-│   │   │   ├── RiskGauge.jsx             # Medidor visual de riesgo (Verde/Amarillo/Rojo)
-│   │   │   └── ExecutiveSummary.jsx      # Conclusiones de Gemini en tercera persona
-│   │   ├── App.jsx                       # Orquestación del estado del dashboard
-│   │   ├── main.jsx
-│   │   └── index.css                     # Sistema de diseño clínico (fondo blanco puro)
-│   ├── package.json                      # Dependencias de React y bibliotecas UI
-│   └── vite.config.js
-├── .gitignore                            # Blindaje estricto contra fugas de credenciales
-├── CONTRIBUTING.md                       # Protocolos de desarrollo
-├── CODE_OF_CONDUCT.md                   # Código de conducta
-├── LICENSE                               # Licencia MIT
-├── README.md                             # Documentación principal (este archivo)
-└── SECURITY.md                           # Políticas de reporte de vulnerabilidades
+backend/
+  api/                 # API FastAPI y esquemas Pydantic
+  src/                 # Scraping, NLP, privacidad, cookies y evidencia
+  data/
+    evidence/          # Evidencias locales, ignoradas por Git
+    reports/            # Informes locales, ignorados por Git
+  main.py              # CLI interactiva, auditoría y servidor
+  requirements.txt
+frontend/
+  src/
+    components/        # Dashboard y componentes de resultados
+    App.jsx
+    index.css
+  package.json
+  vite.config.js        # Vite en el puerto 3000 y proxy /api al backend
 ```
 
----
+## Requisitos
 
-## Instalación y Puesta en Marcha
+- Python 3.10 o superior.
+- Node.js 18 o superior y npm.
+- Chromium instalado para Playwright.
+- Una clave `GEMINI_API_KEY` es opcional. Sin ella, el backend genera una síntesis de respaldo.
 
-### 1. Requisitos Previos
-- Python 3.10 o superior instalado.
-- Node.js 18+ y npm instalados.
-- Git instalado.
+## Instalación y ejecución
 
-### 2. Configuración del Backend
+### Backend
 
 ```bash
 cd backend
-
-# Crear el entorno virtual aislado
 python -m venv .venv
-
-# Activar en Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Nota: Si PowerShell bloquea scripts, ejecuta antes: Set-ExecutionPolicy -Scope Process RemoteSigned
-
-# Activar en Windows (Símbolo del sistema / CMD):
-.venv\Scripts\activate.bat
-
-# Activar en Linux / macOS:
-# source .venv/bin/activate
-
-# Instalar dependencias
+source .venv/bin/activate       # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Instalar navegadores para Playwright
 playwright install chromium
-
-# Configurar variables de entorno (opcional para Gemini)
-copy .env.example .env
+cp .env.example .env            # Opcional; edita GEMINI_API_KEY si usarás Gemini
 ```
 
-#### Modos de Ejecución del Backend:
+Inicia la API desde `backend/`:
 
-- **Modo Servidor API REST (para alimentar al Dashboard):**
-  ```bash
-  python main.py server --port 8000
-  ```
-  *Documentación Swagger interactiva:* `http://localhost:8000/docs`
+```bash
+python main.py server --host 127.0.0.1 --port 8000
+```
 
-- **Modo Menú Interactivo en Consola:**
-  ```bash
-  python main.py
-  ```
+La documentación interactiva queda en <http://127.0.0.1:8000/docs> y el estado del servicio en <http://127.0.0.1:8000/api/v1/health>.
 
----
+También están disponibles la CLI interactiva (`python main.py`) y la auditoría directa:
 
-### 3. Configuración del Frontend (Dashboard Ejecutivo)
+```bash
+python main.py audit "https://www.tiktok.com/@usuario/video/1234567890" --sample 150 --no-evidence
+```
 
-En una terminal separada:
+### Frontend
+
+En otra terminal:
 
 ```bash
 cd frontend
-
-# Instalar paquetes
 npm install
-
-# Iniciar servidor de desarrollo
 npm run dev
 ```
 
-El panel estará disponible de forma inmediata en:
-👉 `http://localhost:3000`
+Abre <http://localhost:3000>. Vite reenvía las peticiones `/api` a `http://127.0.0.1:8000`. Si el backend no está disponible, el dashboard conserva su conjunto de datos de demostración.
 
----
+## API
 
-## Blindaje de Seguridad y Privacidad (.gitignore)
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET` | `/api/v1/health` | Estado del servicio y disponibilidad de cookies. |
+| `POST` | `/api/v1/session/login-qr` | Inicia el flujo interactivo de login QR (hasta 5 minutos). |
+| `GET` | `/api/v1/audit/progress` | Progreso y registros de la extracción en curso. |
+| `POST` | `/api/v1/audit` | Analiza un perfil o URL de TikTok. |
+| `GET` | `/api/v1/evidence/{filename}` | Descarga un archivo de evidencia guardado localmente. |
 
-El repositorio cuenta con una directiva estricta de **cero fugas de información sensible**:
-- Las cookies de sesión (`*cookies.json`, `*cookies.txt`), las variables de entorno (`.env`), los videos `.mp4` descargados como evidencia y los reportes locales **están estrictamente ignorados por Git**.
-- Las carpetas `backend/data/evidence/` y `backend/data/reports/` contienen únicamente archivos `.gitkeep` para garantizar que la estructura exista al clonar el repositorio sin exponer ningún archivo privado.
+Ejemplo de solicitud a `/api/v1/audit`:
 
----
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/audit \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "url": "https://www.tiktok.com/@usuario",
+    "sample_comments": 150,
+    "max_videos": 10,
+    "download_evidence": true,
+    "headed_browser": false
+  }'
+```
+
+`sample_comments` acepta valores de 10 a 1000 (por defecto, 150); `max_videos`, de 1 a 30 (por defecto, 10). `headed_browser` abre un navegador visible para resolver interacciones como captchas. La respuesta incluye metadatos del perfil, métricas agregadas, resultados por video, comentarios categorizados y una evaluación de riesgo.
+
+## Configuración
+
+Las variables reconocidas se documentan en [`backend/.env.example`](backend/.env.example):
+
+- `GEMINI_API_KEY`: habilita la síntesis remota con Gemini; sin clave se usa el respaldo determinista.
+- `DP_EPSILON`: epsilon de privacidad diferencial (por defecto, `1.0`).
+- `DATA_DIR`: ubicación de cookies, evidencias e informes (por defecto, `backend/data`).
+- `USE_LOCAL_TRANSFORMERS`: activa la carga local del clasificador cuando vale `true` o `1`.
+
+## Privacidad y seguridad
+
+- Las cookies y los datos locales de `backend/data/` están excluidos de Git. No publiques cookies, claves, evidencias ni informes.
+- El extractor genera un hash SHA-256 de identificadores, pero los objetos de comentario también pueden contener nombre de usuario, nickname, avatar y texto. El hash es seudonimización; no implica que la respuesta esté anonimizada.
+- El hash del manifiesto ayuda a comprobar la integridad del archivo capturado, pero no convierte el almacenamiento local en una bóveda inmutable ni certifica por sí solo cumplimiento legal.
+- La API no implementa autenticación y configura CORS para cualquier origen. Su configuración predeterminada es para desarrollo local: no la expongas a Internet sin añadir controles de acceso y revisar CORS.
 
 ## Licencia
 
