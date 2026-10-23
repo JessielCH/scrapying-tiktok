@@ -208,7 +208,8 @@ class TikTokCommentScraper:
                     try:
                         data = await response.json()
                         raw_comments = data.get("comments", [])
-                        vid = current_nav_vid_id[0] or "default"
+                        match_id = re.search(r"[?&](?:aweme_id|item_id)=(\d+)", response.url)
+                        vid = match_id.group(1) if match_id else (current_nav_vid_id[0] or "default")
                         if vid not in captured_api_comments:
                             captured_api_comments[vid] = []
 
@@ -387,10 +388,17 @@ class TikTokCommentScraper:
                             await asyncio.sleep(1.0)
 
                         links = await page.evaluate("""() => {
-                            return Array.from(document.querySelectorAll('a[href*="/video/"]')).map(a => ({
-                                url: a.href,
-                                title: a.innerText ? a.innerText.slice(0, 80) : ''
-                            }));
+                            return Array.from(document.querySelectorAll('a[href*="/video/"]')).map(a => {
+                                const viewsEl = a.querySelector('[data-e2e="video-views"], [class*="VideoViews"], strong');
+                                const imgEl = a.querySelector('img');
+                                const rawText = a.innerText ? a.innerText.replace(/\\n+/g, ' ').trim() : '';
+                                return {
+                                    url: a.href,
+                                    title: rawText.slice(0, 80),
+                                    views: viewsEl ? viewsEl.innerText.trim() : '',
+                                    cover: imgEl ? imgEl.src : ''
+                                };
+                            });
                         }""")
 
                         for l in links:
@@ -402,7 +410,9 @@ class TikTokCommentScraper:
                                 discovered_video_urls.append({
                                     "video_id": vid,
                                     "url": u,
-                                    "title": l["title"] or f"Publicación {vid}"
+                                    "title": l["title"] or f"Publicación {vid}",
+                                    "views": l.get("views") or "",
+                                    "cover": l.get("cover") or ""
                                 })
                                 if len(discovered_video_urls) >= max_videos:
                                     break
@@ -455,98 +465,127 @@ class TikTokCommentScraper:
                 video_comments: List[Dict[str, Any]] = []
                 real_video_meta = {
                     "title": v_item.get("title") or f"Publicación {vid_id}",
-                    "views_count": "0",
+                    "views_count": v_item.get("views") or "0",
                     "likes_count": "0",
                     "comments_count": "0",
                     "shares_count": "0",
-                    "cover_url": f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg"
+                    "cover_url": v_item.get("cover") or f"https://p16-sign-va.tiktokcdn.com/obj/tos-maliva-p-0068/{vid_id}_thumb.jpeg"
                 }
 
-                # Navegar al video para extraer SSR y comentarios reales
-                try:
-                    await page.goto(v_url, timeout=45000, wait_until="domcontentloaded")
-                    await asyncio.sleep(2.0)
+                # Abrir video simulando comportamiento humano (clic en miniatura dentro del perfil)
+                opened_via_click = False
+                if not is_direct_video:
+                    try:
+                        anchor_sel = f'a[href*="{vid_id}"]'
+                        anchor_el = await page.query_selector(anchor_sel)
+                        if not anchor_el:
+                            await page.mouse.wheel(0, 900)
+                            await asyncio.sleep(1.0)
+                            anchor_el = await page.query_selector(anchor_sel)
 
-                    # Cerrar modal de inicio o aviso si interfiere
+                        if anchor_el:
+                            await page.evaluate("(el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' })", anchor_el)
+                            await asyncio.sleep(0.6)
+                            await anchor_el.click()
+                            opened_via_click = True
+                            await asyncio.sleep(3.0)
+                    except Exception as e_click_open:
+                        print(f"[*] Aviso al abrir video mediante clic humano: {e_click_open}")
+
+                if not opened_via_click:
+                    # Fallback de navegación directa solo si no se pudo hacer clic o es video individual
+                    try:
+                        await page.goto(v_url, timeout=45000, wait_until="domcontentloaded")
+                        await asyncio.sleep(2.5)
+                    except Exception as e_nav:
+                        print(f"[!] Error al navegar al video {vid_id}: {e_nav}")
+
+                # Extraer metadatos reales del video desde el modal o página
+                try:
+                    # Cerrar modal de bienvenida o aviso si interfiere
                     try:
                         modal_close = await page.query_selector('#captcha_close_button, button[aria-label="Close"], [data-e2e="modal-close-icon"], [class*="ModalClose"]')
-                        if modal_close:
+                        if modal_close and not opened_via_click:
                             await modal_close.click()
                             await asyncio.sleep(1.0)
                     except Exception:
                         pass
 
-                    # Extraer metadatos 100% reales de SSR
-                    ssr_meta = await page.evaluate("""() => {
-                        const el = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
-                        if (!el) return null;
-                        try {
-                            const full = JSON.parse(el.innerText);
-                            const scope = full['__DEFAULT_SCOPE__'] || {};
-                            const vDetail = scope['webapp.video-detail'] || {};
-                            const item = (vDetail['itemInfo'] || {})['itemStruct'] || {};
-                            const stats = item['stats'] || {};
-                            const video = item['video'] || {};
-                            return {
-                                desc: item['desc'] || '',
-                                playCount: stats['playCount'],
-                                diggCount: stats['diggCount'],
-                                commentCount: stats['commentCount'],
-                                shareCount: stats['shareCount'],
-                                cover: video['cover'] || video['originCover'] || video['dynamicCover'] || ''
-                            };
-                        } catch(e) {
-                            return null;
+                    modal_meta = await page.evaluate("""() => {
+                        const descEl = document.querySelector('[data-e2e="browse-video-desc"], [data-e2e="video-desc"], h1');
+                        const likeEl = document.querySelector('[data-e2e="like-count"], [data-e2e="browse-like-count"]');
+                        const commentEl = document.querySelector('[data-e2e="comment-count"], [data-e2e="browse-comment-count"]');
+                        const shareEl = document.querySelector('[data-e2e="share-count"], [data-e2e="browse-share-count"]');
+                        
+                        let ssr = null;
+                        const ssrEl = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                        if (ssrEl) {
+                            try {
+                                const full = JSON.parse(ssrEl.innerText);
+                                const scope = full['__DEFAULT_SCOPE__'] || {};
+                                const vDetail = scope['webapp.video-detail'] || {};
+                                const item = (vDetail['itemInfo'] || {})['itemStruct'] || {};
+                                const stats = item['stats'] || {};
+                                const video = item['video'] || {};
+                                ssr = {
+                                    desc: item['desc'] || '',
+                                    playCount: stats['playCount'],
+                                    diggCount: stats['diggCount'],
+                                    commentCount: stats['commentCount'],
+                                    shareCount: stats['shareCount'],
+                                    cover: video['cover'] || video['originCover'] || ''
+                                };
+                            } catch(e) {}
                         }
+
+                        return {
+                            desc: descEl ? descEl.innerText.trim() : (ssr ? ssr.desc : ''),
+                            likes: likeEl ? likeEl.innerText.trim() : (ssr ? String(ssr.diggCount || '') : ''),
+                            comments: commentEl ? commentEl.innerText.trim() : (ssr ? String(ssr.commentCount || '') : ''),
+                            shares: shareEl ? shareEl.innerText.trim() : (ssr ? String(ssr.shareCount || '') : ''),
+                            cover: ssr ? ssr.cover : '',
+                            playCount: ssr ? ssr.playCount : null
+                        };
                     }""")
 
-                    if ssr_meta:
-                        if ssr_meta.get("desc"):
-                            real_video_meta["title"] = ssr_meta["desc"]
-                        real_video_meta["views_count"] = format_metric(ssr_meta.get("playCount"), "0")
-                        real_video_meta["likes_count"] = format_metric(ssr_meta.get("diggCount"), "0")
-                        real_video_meta["comments_count"] = format_metric(ssr_meta.get("commentCount"), "0")
-                        real_video_meta["shares_count"] = format_metric(ssr_meta.get("shareCount"), "0")
-                        if ssr_meta.get("cover"):
-                            real_video_meta["cover_url"] = ssr_meta["cover"]
+                    if modal_meta:
+                        if modal_meta.get("desc"):
+                            real_video_meta["title"] = modal_meta["desc"]
+                        if modal_meta.get("likes"):
+                            real_video_meta["likes_count"] = format_metric(modal_meta["likes"], "0")
+                        if modal_meta.get("comments"):
+                            real_video_meta["comments_count"] = format_metric(modal_meta["comments"], "0")
+                        if modal_meta.get("shares"):
+                            real_video_meta["shares_count"] = format_metric(modal_meta["shares"], "0")
+                        if modal_meta.get("cover"):
+                            real_video_meta["cover_url"] = modal_meta["cover"]
+                        if modal_meta.get("playCount"):
+                            real_video_meta["views_count"] = format_metric(modal_meta["playCount"], "0")
 
-                    # Hacer clic explícito en el icono de comentarios para abrir el panel y activar la carga de red
+                    # Si el panel de comentarios no está abierto, hacer clic en el icono de comentarios solo si no hay comentarios visibles
                     try:
-                        comment_btn = await page.query_selector('[data-e2e="comment-icon"], div[data-e2e="comment-icon"], strong[data-e2e="comment-count"]')
-                        if not comment_btn:
-                            comment_btn = await page.query_selector('button[data-e2e="comments"], [role="tab"]:has-text("Comentarios")')
-                        if comment_btn:
-                            await comment_btn.click()
-                            await asyncio.sleep(2.0)
-                    except Exception as e_c_click:
-                        print(f"[*] Aviso al activar panel de comentarios: {e_c_click}")
-
-                    # Esperar pacientemente (hasta 5 minutos) si TikTok presenta el puzle deslizador en pantalla
-                    await self._wait_for_captcha_if_present(page, progress_callback, max_wait=300)
-                    await asyncio.sleep(2.0)
-
-                    # Persistir el estado de sesión actualizado
-                    try:
-                        if self.cookies_path:
-                            await context.storage_state(path=str(self.cookies_path))
-                    except Exception:
-                        pass
-
-                    # Descartar notificaciones emergentes que puedan superponerse
-                    try:
-                        await page.evaluate("""() => {
-                            const toastCloses = document.querySelectorAll('button[aria-label="Close"], [class*="toast"] button, [class*="notification"] button');
-                            toastCloses.forEach(b => { try { b.click(); } catch(e){} });
+                        has_comments_visible = await page.evaluate("""() => {
+                            const c = document.querySelector('[data-e2e="comment-level-1"], [class*="CommentItem"], [class*="DivCommentItemContainer"]');
+                            return Boolean(c);
                         }""")
+                        if not has_comments_visible:
+                            comment_btn = await page.query_selector('[data-e2e="comment-icon"], div[data-e2e="comment-icon"]')
+                            if comment_btn:
+                                await comment_btn.click(timeout=1500)
+                                await asyncio.sleep(1.0)
                     except Exception:
                         pass
 
-                    # Desplazamiento e interacción en el panel de comentarios
-                    for _ in range(5):
-                        await page.mouse.wheel(0, 1000)
-                        await asyncio.sleep(1.2)
+                    # Esperar si TikTok solicita puzle deslizador (hasta 5 minutos)
+                    await self._wait_for_captcha_if_present(page, progress_callback, max_wait=300)
+                    await asyncio.sleep(1.5)
 
-                    # Extraer comentarios reales del DOM
+                    # Desplazamiento en la sección de comentarios para cargar más
+                    for _ in range(4):
+                        await page.mouse.wheel(0, 900)
+                        await asyncio.sleep(1.0)
+
+                    # Extraer comentarios reales del DOM del modal
                     dom_data = await page.evaluate("""() => {
                         const list = [];
                         const seenTexts = new Set();
@@ -618,8 +657,22 @@ class TikTokCommentScraper:
                             "video_title": real_video_meta["title"],
                             "video_url": v_url
                         })
-                except Exception as e_nav:
-                    print(f"[!] Error al navegar y extraer datos del video {vid_id}: {e_nav}")
+
+                    # Cerrar modal suavemente con Escape para volver al feed del perfil
+                    if opened_via_click:
+                        try:
+                            await page.keyboard.press("Escape")
+                            await asyncio.sleep(1.5)
+                            if "/video/" in page.url:
+                                close_btn = await page.query_selector('[data-e2e="modal-close-icon"], button[aria-label="Close"], [class*="CloseButton"]')
+                                if close_btn:
+                                    await close_btn.click()
+                                    await asyncio.sleep(1.0)
+                        except Exception as e_esc:
+                            print(f"[*] Aviso al cerrar modal: {e_esc}")
+
+                except Exception as e_video_proc:
+                    print(f"[!] Error procesando video {vid_id}: {e_video_proc}")
 
                 # Incorporar comentarios reales interceptados por API de red
                 if vid_id in captured_api_comments:

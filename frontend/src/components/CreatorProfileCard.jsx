@@ -77,7 +77,7 @@ export default function CreatorProfileCard({ profile, target }) {
               )}
               <div className="creator-metric-badge neutral">
                 <span className="metric-label">Estado</span>
-                <span className="metric-value">Auditado en Vivo</span>
+                <span className="metric-value">Extraído en Vivo</span>
               </div>
             </div>
           )}
